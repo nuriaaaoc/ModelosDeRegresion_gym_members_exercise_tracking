@@ -1,0 +1,261 @@
+---
+title: "gym_members"
+author: "Nuria Oviedo"
+date: "2025-02-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Cargar paquetes necesarios
+
+```{r}
+
+library(ggplot2)
+library(car) # pruebas de diagnóstico
+library(lmtest) # prueba de homocedasticidad
+library(dplyr) # manipulación de datos
+library(GGally) # visualización avanzada
+library(HistData) # datos históricos de Galton
+library(gridExtra) # organizar múltiples gráficos
+```
+
+
+#  cargamos los datos de nuestro archivo CSV y revisamos un resumen.
+
+
+```{r}
+# Cargar los datos
+datos <- read.csv("gym_members_exercise_tracking.csv")
+
+# Inspeccionar los primeros registros y estructura
+glimpse(datos)
+summary(datos)
+
+
+```
+
+#Correlación entre Duración de la Sesión y Calorías Quemadas
+
+## Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
+
+```{r}
+correlacion_pearson <- cor(datos$Session_Duration..hours., datos$Calories_Burned, use = "complete.obs")
+cat("El coeficiente de correlación de Pearson entre la duración de la sesión y las calorías quemadas es:", round(correlacion_pearson, 2), "\n")
+```
+
+# Visualización de la Relación entre Duración de la Sesión y Calorías Quemadas
+
+```{r}
+# Crear el gráfico de dispersión con la línea de regresión
+grafico_gym <- ggplot(datos, aes(x = Session_Duration..hours., y = Calories_Burned)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Duración de Sesión vs Calorías Quemadas",
+       x = "Duración de la sesión (horas)",
+       y = "Calorías Quemadas")
+  
+# Mostrar el gráfico
+grafico_gym
+
+```
+
+
+# Ajuste del Modelo de Regresión Lineal
+
+Ajustamos un modelo de regresión lineal para predecir las calorías quemadas en función de la duración de la sesión.
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo <- lm(Calories_Burned ~ Session_Duration..hours., data = datos)
+
+# Resumen del modelo
+summary(modelo)
+
+```
+
+
+# Análisis de Residuos
+
+Realizamos el análisis de residuos para evaluar el modelo ajustado.
+
+### 1. Residuos vs Valores Ajustados
+
+```{r}
+# Obtener los residuos
+residuos <- resid(modelo)
+valores_ajustados <- fitted(modelo)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+### 2. Histograma de los Residuos
+```{r}
+# Graficar histograma de los residuos
+hist(residuos,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+
+
+### 3. QQ-Plot de los Residuos
+
+
+```{r}
+
+# Graficar QQ-plot de los residuos
+qqnorm(residuos, main = "QQ-Plot de los Residuos")
+qqline(residuos, col = "red", lwd = 2) 
+
+```
+
+### 4. Prueba de Normalidad de los Residuos (Shapiro-Wilk)
+
+```{r}
+# Realizar la prueba de Shapiro-Wilk para normalidad de los residuos
+
+shapiro_test <- shapiro.test(residuos)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+
+```
+
+### 5. Residuos vs Tiempo de Estudio
+
+```{r}
+# Graficar residuos vs tiempo de estudio
+plot(datos$Session_Duration..hours., residuos,
+     main = "Residuos vs Tiempo de Estudio",
+     xlab = "Duración de la Sesión (horas)",
+     ylab = "Residuos",
+     pch = 19, col = "purple")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+# Diagnóstico del Modelo: Pruebas de Homocedasticidad y Leverage
+
+### 1. Prueba de Homocedasticidad (Breusch-Pagan)
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+
+```
+
+### 2. Análisis de Leverage 
+
+Calculamos el leverage de las observaciones y graficamos las observaciones con leverage alto.
+
+```{r}
+# Calcular leverage
+leverage <- hatvalues(modelo)
+
+# Umbral para leverage alto
+n <- nrow(datos)
+p <- length(coef(modelo))  # Número de parámetros (incluyendo el intercepto)
+leverage_threshold <- 2 * p / n
+
+# Identificar observaciones con leverage alto
+leverage_high <- which(leverage > leverage_threshold)
+
+cat("\nUmbral para leverage alto:", leverage_threshold, "\n")
+cat("\nObservaciones con leverage alto (si las hay):\n")
+print(leverage_high)
+
+# Gráfico de leverage
+grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y = leverage)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = leverage_threshold, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Leverage de las Observaciones", x = "Índice de Observación", y = "Leverage")
+
+# Mostrar gráfico
+grafico_leverage
+```
+
+
+### 3. Análisis de la Distancia de Cook
+
+ mide la influencia de cada observación sobre los coeficientes del modelo.
+
+```{r}
+# Calcular Distancia de Cook
+cooks_distance <- cooks.distance(modelo)
+
+# Gráfico de Distancia de Cook
+grafico_cooks_distance <- ggplot(data.frame(cooks_distance), aes(x = seq_along(cooks_distance), y = cooks_distance)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 4 / n, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Distancia de Cook", x = "Índice de Observación", y = "Distancia de Cook")
+
+# Mostrar gráfico
+grafico_cooks_distance
+
+```
+
+
+## Análisis de DFFITS
+
+mide el cambio en los valores ajustados cuando se omite una observación.
+
+```{r}
+# Calcular DFFITS
+dffits_values <- dffits(modelo)
+
+# Gráfico de DFFITS
+grafico_dffits <- ggplot(data.frame(dffits_values), aes(x = seq_along(dffits_values), y = dffits_values)) +
+  geom_point(color = "green") +
+  geom_hline(yintercept = c(2 * sqrt(length(coef(modelo)) / n)), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFFITS", x = "Índice de Observación", y = "DFFITS")
+
+# Mostrar gráfico
+grafico_dffits
+
+```
+
+
+## Análisis de DFBETAS
+
+nos indican la influencia de cada observación sobre cada coeficiente de la regresión.
+
+
+```{r}
+# Calcular DFBETAS# Calcular DFBETAS
+dfbetas_values <- dfbetas(modelo)
+
+# Convertir dfbetas_values a un data.frame para poder usarlo en ggplot
+dfbetas_df <- as.data.frame(dfbetas_values)
+
+# Graficar DFBETAS para el coeficiente de la pendiente (segunda columna si existe)
+grafico_dfbetas <- ggplot(dfbetas_df, aes(x = seq_along(dfbetas_df[,2]), y = dfbetas_df[,2])) + # Usamos el coeficiente de la pendiente
+  geom_point(color = "purple") +
+  geom_hline(yintercept = 2 / sqrt(n), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFBETAS para el Coeficiente de la Pendiente", x = "Índice de Observación", y = "DFBETAS")
+
+# Mostrar gráfico
+grafico_dfbetas
+
+
+```
+
+
+
+
