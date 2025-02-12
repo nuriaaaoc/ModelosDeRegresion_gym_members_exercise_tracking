@@ -8,27 +8,36 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 # Cargar paquetes necesarios
 library(ggplot2)
-library(car)
-library(lmtest)
-
-
-setwd("C:/Users/nuria/OneDrive/Escritorio/Uni/MR")
+library(car) # pruebas de diagnóstico
+library(lmtest) # prueba de homocedasticidad
+library(dplyr) # manipulación de datos
+library(GGally) # visualización avanzada
+library(HistData) # datos históricos de Galton
+library(gridExtra) # organizar múltiples gráficos
 
 # Cargar los datos
 datos <- read.csv("gym_members_exercise_tracking.csv")
 
-# Inspeccionar los primeros registros
-head(datos)
+# Inspeccionar los primeros registros y estructura
+glimpse(datos)
+summary(datos)
+
+# Visualización de distribuciones individuales
+hist(datos$Calories_Burned, main="Distribución de Calorías Quemadas", xlab="Calorías Quemadas", col="lightblue", border="black")
+hist(datos$Session_Duration..hours., main="Distribución de la Duración de Sesión", xlab="Duración de Sesión (horas)", col="lightgreen", border="black")
 
 # Inspección gráfica de la relación entre duración de sesión y calorías quemadas
-plot(datos$Session_Duration..hours., datos$Calories_Burned,
-     main = "Duración de Sesión vs Calorías Quemadas",
-     xlab = "Duración de la sesión (horas)",
-     ylab = "Calorías Quemadas",
-     pch = 19, col = "blue")
+grafico_gym <- ggplot(datos, aes(x = Session_Duration..hours., y = Calories_Burned)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Duración de Sesión vs Calorías Quemadas",
+       x = "Duración de la sesión (horas)",
+       y = "Calorías Quemadas")
+
+# Matriz de correlaciones y gráficos de dispersión
+pairs(datos[, c("Calories_Burned", "Session_Duration..hours.", "Weight..kg.", "BMI")])
 
 # Calcular la correlación entre las dos variables
 correlacion <- cor(datos$Session_Duration..hours., datos$Calories_Burned, use = "complete.obs")
@@ -67,14 +76,33 @@ print(shapiro_test)
 bptest <- bptest(modelo)
 print(bptest)
 
-# Graficar la recta de regresión sobre los datos
-plot(datos$Session_Duration..hours., datos$Calories_Burned,
-     main = "Regresión Lineal: Duración de Sesión vs Calorías Quemadas",
-     xlab = "Duración de la sesión (horas)",
-     ylab = "Calorías Quemadas",
-     pch = 19, col = "blue")
-abline(modelo, col = "red", lwd = 2)
+# Gráfico QQ para normalidad de residuos
+qqnorm(residuals(modelo))
+qqline(residuals(modelo), col = "red")
 
+# Cargar datos de Galton para comparación histórica
+data("GaltonFamilies")
+galton_data <- GaltonFamilies
+
+# Crear el modelo de regresión lineal para datos de Galton
+modelo_galton <- lm(childHeight ~ midparentHeight, data = galton_data)
+
+# Crear gráfico con ggplot2 para Galton
+grafico_galton <- ggplot(galton_data, aes(x = midparentHeight, y = childHeight)) +
+  geom_point() +  # Añadir puntos de datos
+  geom_smooth(method = "lm", col = "red") +  # Añadir la recta de regresión
+  labs(title = "Altura de Padres e Hijos (Datos de Galton)",
+       x = "Altura de los Padres",
+       y = "Altura de los Hijos") +
+  annotate("text", x = 67, y = 75, label = paste("y =", round(coef(modelo_galton)[1], 2), "+", round(coef(modelo_galton)[2], 2), "x"), color = "red")
+
+# Mostrar los gráficos en una disposición ordenada
+grid.arrange(grafico_gym, grafico_galton, ncol = 2)
+
+# Comentarios y conclusiones
+total_obs <- nrow(datos)
+print(paste("Número total de observaciones: ", total_obs))
+print("Conclusión: Se ha observado una correlación positiva entre la duración de la sesión y las calorías quemadas. El modelo de regresión ajustado muestra una relación significativa, con un coeficiente de determinación que indica cuánto de la variabilidad de las calorías quemadas es explicada por la duración de la sesión. Se recomienda explorar modelos más complejos para mejorar la predicción.")
 
 
 
