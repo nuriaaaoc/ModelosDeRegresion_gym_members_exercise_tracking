@@ -1,0 +1,82 @@
+---
+title: "gym_members"
+author: "Nuria Oviedo"
+date: "2025-02-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Cargar paquetes necesarios
+library(ggplot2)
+library(car)
+library(lmtest)
+
+
+setwd("C:/Users/nuria/OneDrive/Escritorio/Uni/MR")
+
+# Cargar los datos
+datos <- read.csv("gym_members_exercise_tracking.csv")
+
+# Inspeccionar los primeros registros
+head(datos)
+
+# Inspección gráfica de la relación entre duración de sesión y calorías quemadas
+plot(datos$Session_Duration..hours., datos$Calories_Burned,
+     main = "Duración de Sesión vs Calorías Quemadas",
+     xlab = "Duración de la sesión (horas)",
+     ylab = "Calorías Quemadas",
+     pch = 19, col = "blue")
+
+# Calcular la correlación entre las dos variables
+correlacion <- cor(datos$Session_Duration..hours., datos$Calories_Burned, use = "complete.obs")
+print(paste("Correlación: ", round(correlacion, 2)))
+
+# Ajustar el modelo de regresión lineal simple
+modelo <- lm(Calories_Burned ~ Session_Duration..hours., data = datos)
+
+# Resumen del modelo
+summary(modelo)
+
+# Intervalos de confianza para los coeficientes
+confint(modelo)
+
+# Prueba de hipótesis sobre los coeficientes
+test_beta1 <- summary(modelo)$coefficients[2,]
+print(paste("Valor t: ", round(test_beta1[3], 3)))
+print(paste("p-valor: ", round(test_beta1[4], 5)))
+
+# ANOVA del modelo
+anova(modelo)
+
+# Cálculo del coeficiente de determinación (R^2)
+R2 <- summary(modelo)$r.squared
+print(paste("Coeficiente de determinación R^2: ", round(R2, 3)))
+
+# Diagnóstico del modelo: análisis de residuos
+par(mfrow = c(2,2))
+plot(modelo)
+
+# Prueba de normalidad de residuos
+shapiro_test <- shapiro.test(residuals(modelo))
+print(shapiro_test)
+
+# Prueba de homocedasticidad
+bptest <- bptest(modelo)
+print(bptest)
+
+# Graficar la recta de regresión sobre los datos
+plot(datos$Session_Duration..hours., datos$Calories_Burned,
+     main = "Regresión Lineal: Duración de Sesión vs Calorías Quemadas",
+     xlab = "Duración de la sesión (horas)",
+     ylab = "Calorías Quemadas",
+     pch = 19, col = "blue")
+abline(modelo, col = "red", lwd = 2)
+
+
+
+
+
+
