@@ -8,7 +8,31 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Introducción
 
+El conjunto de datos contiene un análisis de patrines de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
+
+Estos datos se han extraido de [kaggle](https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset). Segun la propia descripción de los datos,este conjunto de datos nos proporciona una descripción detallada de las turinad de ejercicio, los atributos físicos y las métricas de aptitud física de los miembros de gimnasios. En temas de salud es muy importante llevar un monitoreo de las cosas que hay que hacer para estar bien físicamente. El objetivo de este sistema es poder buscar patrones y evidencias de lo que tiene que hacer una persona para estar bien fisica y mentalmente. Este conjunto de dato nos da información sobre datos demográficos y niveles de experiencia, lo que permite un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias de salud. Además de esto no 
+
+Según la descripción oficial de los datos, las variables que conforman el conjunto de datos son:
+
+* Edad: Edad del miembro del gimnasio.
+* Género: Género del miembro del gimnasio (masculino o femenino).
+* Peso (kg): Peso del miembro en kilogramos.
+* Altura (m): Altura del miembro en metros.
+* Max_BPM: Frecuencia cardíaca máxima (pulsaciones por minuto) durante las sesiones de entrenamiento.
+* Avg_BPM: Frecuencia cardíaca promedio durante las sesiones de entrenamiento.
+* Resting_BPM: Frecuencia cardíaca en reposo antes del entrenamiento.
+* Session_Duration (horas): Duración de cada sesión de entrenamiento en horas.
+* Calorías_Quemadas: Total de calorías quemadas durante cada sesión.
+* Workout_Type: Tipo de entrenamiento realizado (por ejemplo, Cardio, Fuerza, Yoga, HIIT).
+* Fat_Percentage: Porcentaje de grasa corporal del miembro.
+* Consumo_de_agua (litros): Ingesta diaria de agua durante los entrenamientos.
+* Frecuencia_de_entrenamiento (días/semana): Número de sesiones de entrenamiento por semana.
+* Nivel_Experiencia: Nivel de experiencia, desde principiante (1) hasta experto (3).
+* IMC: Índice de Masa Corporal, calculado a partir de la altura y el peso.
+
+Dado que es un problema de regresión, la variable objetivo (Cantidad de calorias quemadas durante la sesión de entrenamiento) es continua.
 
 
 # Cargar paquetes necesarios
