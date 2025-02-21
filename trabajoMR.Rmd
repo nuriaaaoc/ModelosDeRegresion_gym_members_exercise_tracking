@@ -49,59 +49,131 @@ library(gridExtra) # organizar múltiples gráficos
 ```
 
 
-#  cargamos los datos de nuestro archivo CSV y revisamos un resumen.
+# Data undestandig
 
-
+## Cargamos los datos.
 ```{r}
-# Cargar los datos
 datos <- read.csv("gym_members_exercise_tracking.csv")
-
-# Inspeccionar los primeros registros y estructura
-glimpse(datos)
-summary(datos)
-
-
 ```
 
-#Correlación entre Duración de la Sesión y Calorías Quemadas
+## Tamaño del dataset.
+```{r}
+size <- dim(datos)
+```
 
-## Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
+En estos datos podemos ver que tenemos un total de `r size[1]` observaciones y `r size [2]` variables en este dataset.
+
+## Variables.
+```{r}
+str(datos)
+```
+
+Al ver esto podemos ver que estos datos son en su mayoría de tipo numérico o entero, sin embargo, tenemos dos variables de tipo cadena de caracteres (`char`), `Gender` y `Workout_Type`.
+
+## Valores faltantes.
+```{r}
+colSums(is.na(datos))
+```
+
+Vemos que no tenemos ningun datos faltante o missing entre nuestros datos.
+
+## Primer vistazo a los datos.
+```{r}
+head(datos, 5)
+```
+
+# EDA
+
+Antes de nada vamos a ver información de nuestra variable objetivo importante
+```{r}
+summary(datos$Calories_Burned)
+```
+Conesto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorias y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
+
+Vamos a ver la forma de nuestra variable objetivo gráficamente.
+```{r}
+datos |> ggplot(mapping = aes(x = Calories_Burned)) +
+  geom_histogram()
+```
+
+Viendo este histograma se puede ver como las calorias quemadas se acerca a una distribución normal, viendo los datos de antes, se ve que este histograma si que tiene sentido. 
+
+# Modelización estadística.
+Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorias que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorias quema durante el entrenamiento. 
+
+Las variables que se involucran seria el tiempo de duración de las sesiones de entrenamiento (variable explicativa) y la cantidad de calorias que quema una persona (variable respuesta).
+
+Miramos los datos de la variable explicativa
+
+```{r}
+summary(datos$Session_Duration..hours.)
+```
+
+Podemos ver que las personas entrenan una media de 1.256 horas, lo que hace 1 hora y 15 minutos, además podemos ver que dentro de los datos registrados, el mínimo de horas que se ha almacenado es de 0.5 horas y el máximo es de 2 horas.
+
+Observamos los datos de esas dos variables.
+
+```{r}
+problema <- datos |> select(Session_Duration..hours., Calories_Burned)
+head(problema, 5)
+```
+
+Viendo esta cabecera, se puede ver a simple vista que si que puede haber una realción entre la duración de el entrenamiento con las calorias que se queman, para verlo más claro, representamos ambas variables graficamente.
+
+```{r}
+datos |>
+  ggplot(mapping = aes(x = Calories_Burned, y = Session_Duration..hours.)) +
+  geom_point()
+```
+
+Dado que tenemos una relación positiva entre estas dos variables, voy a proponer un modelso para relacionar estas dos variables., buscamos mediante el método de mínimos cuadrados hallar los valores de $\beta_0$ y $\beta_1$ para poder llegar a un modelo con la forma: $\text{Calorias} = \beta_0 + \beta_1 \text{(Tiempo de entrenamient0)} + \epsilon$.
+
+```{r}
+# Creamos el modelo lineal y lo analizamos
+model <- lm(Calories_Burned ~ Session_Duration..hours., data = datos)
+summary(model)
+```
+
+Ahora vamos a ver el modelo gráficamente.
+
+```{r}
+datos |> 
+  ggplot(mapping = aes(x = Calories_Burned, y = Session_Duration..hours.)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Relación entre calorias quemadas y la duración de la sesion.",
+       x = "Calorias quemadas.",
+       y = "Duración de la sesion.") +
+  annotate("text", x = 500, y = 2.0, label = paste("y =", round(coef(model)[1], 2), "+", round(coef(model)[2], 2), "x"), color = "red")
+```
+
+La linea nos muestra una relación alcista segun las calorias quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negarivo ya que $\beta_1$ es 721.79 
+
+# Correlación
+
+Vamos a calcular y entender la correlación entre las variables de nuestro estudio.
+
+## Covarianza
+```{r}
+calorias <- datos$Calories_Burned
+sesion <- datos$Session_Duration..hours.
+
+covarianza <- round(cov(calorias, sesion), 3)
+
+print(paste("La covarianza entre la calorias quemadas por la sesion de entrenamiento es: ", covarianza))
+```
+
+Con esta covarianza podemos observar que ambas variables aumentan juntas, además de que no es cercana a 0 por lo que entre estas variables hay una relación lineal entre las variables.
+
+## Coeficiente de correlación de lineal.
+Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
 
 ```{r}
 correlacion_pearson <- cor(datos$Session_Duration..hours., datos$Calories_Burned, use = "complete.obs")
-cat("El coeficiente de correlación de Pearson entre la duración de la sesión y las calorías quemadas es:", round(correlacion_pearson, 2), "\n")
+cat("El coeficiente de correlación de Pearson entre la duración de la sesión y las calorías quemadas es:", round(correlacion_pearson, 8), "\n")
 ```
 
-# Visualización de la Relación entre Duración de la Sesión y Calorías Quemadas
-
-```{r}
-# Crear el gráfico de dispersión con la línea de regresión
-grafico_gym <- ggplot(datos, aes(x = Session_Duration..hours., y = Calories_Burned)) +
-  geom_point(color = "blue") +
-  geom_smooth(method = "lm", col = "red") +
-  labs(title = "Duración de Sesión vs Calorías Quemadas",
-       x = "Duración de la sesión (horas)",
-       y = "Calorías Quemadas")
-  
-# Mostrar el gráfico
-grafico_gym
-
-```
-
-
-# Ajuste del Modelo de Regresión Lineal
-
-Ajustamos un modelo de regresión lineal para predecir las calorías quemadas en función de la duración de la sesión.
-
-```{r}
-# Ajustar el modelo de regresión lineal
-modelo <- lm(Calories_Burned ~ Session_Duration..hours., data = datos)
-
-# Resumen del modelo
-summary(modelo)
-
-```
-
+La correlación de Pearson nos confirma lo que habiamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y como es positivo, las variables aumentan a la par.
 
 # Análisis de Residuos
 
