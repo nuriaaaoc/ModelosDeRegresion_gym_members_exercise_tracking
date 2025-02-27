@@ -88,7 +88,7 @@ Antes de nada vamos a ver información de nuestra variable objetivo importante
 ```{r}
 summary(datos$Calories_Burned)
 ```
-Conesto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorias y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
+Con esto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorias y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
 
 Vamos a ver la forma de nuestra variable objetivo gráficamente.
 ```{r}
@@ -183,8 +183,8 @@ Realizamos el análisis de residuos para evaluar el modelo ajustado.
 
 ```{r}
 # Obtener los residuos
-residuos <- resid(modelo)
-valores_ajustados <- fitted(modelo)
+residuos <- resid(model)
+valores_ajustados <- fitted(model)
 
 # Graficar residuos vs valores ajustados
 plot(valores_ajustados, residuos,
@@ -195,6 +195,9 @@ plot(valores_ajustados, residuos,
 abline(h = 0, col = "red", lwd = 2)
 
 ```
+Podemos observar que los residuos se distribuyen de manera aleatoria alrededor del eje, sin mostrar patrones claros, poor lo que el supuesto de linealidad se cumple. 
+
+
 
 ### 2. Histograma de los Residuos
 ```{r}
@@ -205,7 +208,7 @@ hist(residuos,
      col = "lightblue", border = "black")
 
 ```
-
+Podemos observar que nuestra distribución se acerca a una distribucion noral con un ligero desplazamiento a la izquierda. 
 
 
 
@@ -219,6 +222,9 @@ qqnorm(residuos, main = "QQ-Plot de los Residuos")
 qqline(residuos, col = "red", lwd = 2) 
 
 ```
+podemos observar que los puntos se alinean con la linea roja diagonal, por lo que podemos deducir que siguen una distribucion normal y concuerda con lo esperado.
+
+
 
 ### 4. Prueba de Normalidad de los Residuos (Shapiro-Wilk)
 
@@ -230,19 +236,10 @@ cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
 print(shapiro_test)
 
 ```
+Observamos que el p-valor obtenido es menor que 0.05, por lo que rechazaríamos la Hipótesis nula.
 
-### 5. Residuos vs Tiempo de Estudio
 
-```{r}
-# Graficar residuos vs tiempo de estudio
-plot(datos$Session_Duration..hours., residuos,
-     main = "Residuos vs Tiempo de Estudio",
-     xlab = "Duración de la Sesión (horas)",
-     ylab = "Residuos",
-     pch = 19, col = "purple")
-abline(h = 0, col = "red", lwd = 2)
 
-```
 
 
 # Diagnóstico del Modelo: Pruebas de Homocedasticidad y Leverage
@@ -251,11 +248,13 @@ abline(h = 0, col = "red", lwd = 2)
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
-bptest_result <- bptest(modelo)
+bptest_result <- bptest(model)
 cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
 print(bptest_result)
 
 ```
+La prueba de Breusch-Pagan muestra un valor p muy pequeño (< 2.2e-16), lo que indica que hay heterocedasticidad en el modelo. Esto significa que los errores del modelo no tienen una varianza constante, lo que puede afectar la precisión de los resultados. En términos más simples, la relación entre las variables puede cambiar dependiendo de ciertos factores, como la experiencia en el gimnasio o características físicas de los usuarios. Para corregir esto, se pueden hacer algunos ajustes, como transformar los datos, usar otro tipo de regresión o aplicar correcciones estadísticas para mejorar la fiabilidad del análisis.
+
 
 ### 2. Análisis de Leverage 
 
@@ -263,11 +262,11 @@ Calculamos el leverage de las observaciones y graficamos las observaciones con l
 
 ```{r}
 # Calcular leverage
-leverage <- hatvalues(modelo)
+leverage <- hatvalues(model)
 
 # Umbral para leverage alto
 n <- nrow(datos)
-p <- length(coef(modelo))  # Número de parámetros (incluyendo el intercepto)
+p <- length(coef(model))  # Número de parámetros (incluyendo el intercepto)
 leverage_threshold <- 2 * p / n
 
 # Identificar observaciones con leverage alto
@@ -287,6 +286,9 @@ grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y 
 grafico_leverage
 ```
 
+El gráfico de leverage muestra la influencia de cada observación en los coeficientes del modelo. Observaciones con leverage alto (por encima del umbral) tienen un gran efecto en el ajuste del modelo.
+El gráfico de leverage muestra que la mayoría de las observaciones tienen un leverage bajo, lo que indica que no influyen demasiado en el ajuste del modelo. Sin embargo, hay una dispersión uniforme de puntos a ambos lados de la línea roja discontinua en niveles más altos de leverage. Esto sugiere que algunas observaciones tienen un mayor impacto en los coeficientes del modelo y podrían ser casos atípicos o influyentes. Es importante analizar estos puntos para determinar si afectan negativamente la estabilidad del modelo y, si es necesario, considerar ajustes o métodos robustos.
+
 
 ### 3. Análisis de la Distancia de Cook
 
@@ -294,7 +296,7 @@ grafico_leverage
 
 ```{r}
 # Calcular Distancia de Cook
-cooks_distance <- cooks.distance(modelo)
+cooks_distance <- cooks.distance(model)
 
 # Gráfico de Distancia de Cook
 grafico_cooks_distance <- ggplot(data.frame(cooks_distance), aes(x = seq_along(cooks_distance), y = cooks_distance)) +
@@ -307,6 +309,8 @@ grafico_cooks_distance
 
 ```
 
+La distancia de Cook mide la influencia de cada observación sobre los coeficientes del modelo. Observaciones con una distancia de Cook alta (por encima del umbral) pueden ser altamente influyentes. En el gráfico, hay algunas observaciones con distancia de Cook alta, lo que indica que estas observaciones pueden estar afectando de manera desproporcionada el ajuste del modelo
+Podemos observar que la mayoría de las observaciones tienen una influencia baja en el modelo, ya que están acumuladas en la parte inferior, cerca de la línea roja. Sin embargo, hay algunas observaciones con una distancia de Cook alta, lo que indica que pueden estar afectando de manera significativa el ajuste del modelo. Estos puntos atípicos podrían estar influyendo de manera desproporcionada en los coeficientes, por lo que sería recomendable revisarlos para determinar si representan datos válidos o si es necesario aplicar ajustes para mejorar la estabilidad del modelo.
 
 ## Análisis de DFFITS
 
@@ -314,18 +318,20 @@ mide el cambio en los valores ajustados cuando se omite una observación.
 
 ```{r}
 # Calcular DFFITS
-dffits_values <- dffits(modelo)
+dffits_values <- dffits(model)
 
 # Gráfico de DFFITS
 grafico_dffits <- ggplot(data.frame(dffits_values), aes(x = seq_along(dffits_values), y = dffits_values)) +
   geom_point(color = "green") +
-  geom_hline(yintercept = c(2 * sqrt(length(coef(modelo)) / n)), col = "red", lwd = 2, lty = 2) +
+  geom_hline(yintercept = c(2 * sqrt(length(coef(model)) / n)), col = "red", lwd = 2, lty = 2) +
   labs(title = "DFFITS", x = "Índice de Observación", y = "DFFITS")
 
 # Mostrar gráfico
 grafico_dffits
 
 ```
+
+El gráfico de DFFITS muestra que la mayoría de las observaciones tienen poca influencia en el modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, hay algunas observaciones que superan este umbral, lo que indica que pueden estar afectando significativamente los valores ajustados. Estas observaciones deberían revisarse para determinar si representan datos válidos o si están distorsionando el modelo, ya que podrían influir en la precisión de las predicciones
 
 
 ## Análisis de DFBETAS
@@ -335,7 +341,7 @@ nos indican la influencia de cada observación sobre cada coeficiente de la regr
 
 ```{r}
 # Calcular DFBETAS# Calcular DFBETAS
-dfbetas_values <- dfbetas(modelo)
+dfbetas_values <- dfbetas(model)
 
 # Convertir dfbetas_values a un data.frame para poder usarlo en ggplot
 dfbetas_df <- as.data.frame(dfbetas_values)
@@ -351,7 +357,7 @@ grafico_dfbetas
 
 
 ```
-
+El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca influencia en los coeficientes del modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, algunas observaciones superan este umbral, lo que indica que pueden estar afectando de manera significativa los coeficientes de regresión. Es importante revisar estos puntos para determinar si están influyendo de manera desproporcionada en el modelo y, si es necesario, considerar ajustes para mejorar su estabilidad.
 
 
 
