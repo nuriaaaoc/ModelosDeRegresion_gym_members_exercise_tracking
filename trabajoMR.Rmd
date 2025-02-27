@@ -365,8 +365,8 @@ El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca 
 ```{r}
 
 # Ajustar modelo de regresión lineal múltiple
-modelo <- lm(BMI ~ Age + Gender + Weight..kg. + Height..m. + Max_BPM + 
-             Avg_BPM + Resting_BPM + Session_Duration..hours. + Calories_Burned + 
+modelo <- lm(Calories_Burned ~ Age + Gender + Weight..kg. + Height..m. + Max_BPM + 
+             Avg_BPM + Resting_BPM + Session_Duration..hours. + BMI + 
              Workout_Type + Fat_Percentage + Water_Intake..liters. + 
              Workout_Frequency..days.week. + Experience_Level, data = datos)
 
