@@ -360,4 +360,66 @@ grafico_dfbetas
 El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca influencia en los coeficientes del modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, algunas observaciones superan este umbral, lo que indica que pueden estar afectando de manera significativa los coeficientes de regresión. Es importante revisar estos puntos para determinar si están influyendo de manera desproporcionada en el modelo y, si es necesario, considerar ajustes para mejorar su estabilidad.
 
 
+#MODELO REGRESION LINEAL MÚLTIPLE
 
+```{r}
+
+# Ajustar modelo de regresión lineal múltiple
+modelo <- lm(BMI ~ Age + Gender + Weight..kg. + Height..m. + Max_BPM + 
+             Avg_BPM + Resting_BPM + Session_Duration..hours. + Calories_Burned + 
+             Workout_Type + Fat_Percentage + Water_Intake..liters. + 
+             Workout_Frequency..days.week. + Experience_Level, data = datos)
+
+# Resumen del modelo
+summary(modelo)
+
+```
+El modelo de regresión lineal múltiple presenta un **ajuste muy fuerte** con un \( R^2 \) de **0.9851**, lo que indica que el 98.51% de la variabilidad en el **BMI** puede explicarse por las variables independientes incluidas. Variables como **peso (p < 0.001)**, **altura (p < 0.001)**, **género (p < 0.001)**, **edad (p = 0.00215)** y **calorías quemadas (p = 0.01446)** son estadísticamente significativas, lo que sugiere que tienen un impacto importante en el BMI. En contraste, variables como **frecuencia de entrenamiento, nivel de experiencia y consumo de agua** no muestran una relación estadísticamente significativa con el BMI. Además, los residuos parecen estar bien distribuidos, lo que respalda la validez del modelo. Sin embargo, la relación negativa con la **duración de la sesión de ejercicio** y la no significancia de la **frecuencia de entrenamiento** pueden indicar la necesidad de revisar la influencia de estos factores en la predicción del BMI.
+
+
+###  Interpretación de los Resultados
+
+Los coeficientes estimados indican la relación entre cada variable independiente y el BMI:
+
+Variables con valores p < 0.05 tienen un impacto significativo.
+R² y R² ajustado indican cuánto del BMI puede explicarse por el modelo.
+
+```{r}
+# Extraer coeficientes y p-valores
+coeficientes <- summary(modelo)$coefficients
+coeficientes
+
+```
+gresión lineal múltiple indican que las variables como el peso, altura, género, edad y calorías quemadas tienen un impacto significativo sobre el BMI, lo que sugiere que estas son las variables más relevantes para predecir el índice de masa corporal. En cambio, otras variables como el nivel de experiencia, frecuencia de entrenamiento, porcentaje de grasa corporal y tipo de ejercicio no muestran una relación estadísticamente significativa en este contexto.
+
+El R² alto (0.9851) y la baja desviación estándar de los residuos sugieren que el modelo tiene un buen ajuste, pero la falta de significancia de algunas variables podría implicar que estas tienen un efecto indirecto sobre el BMI o que se requieren transformaciones adicionales del modelo. Este análisis resalta la importancia de los factores físicos y metabólicos en la predicción del BMI, pero también sugiere que un análisis más detallado y ajustes en las variables podrían mejorar la precisión del modelo.
+
+
+#Diagnóstico del Modelo
+
+Analizamos los residuos y verificamos la validez de los supuestos del modelo.
+
+```{r}
+# Gráfico de residuos vs valores ajustados
+ggplot(data = datos, aes(x = fitted(modelo), y = residuals(modelo))) +
+  geom_point() +
+  geom_hline(yintercept = 0, col = "red") +
+  labs(title = "Residuos vs Valores Ajustados", x = "Valores Ajustados", y = "Residuos")
+
+# Histograma de residuos para evaluar normalidad
+ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
+  geom_histogram(bins = 20, fill = "blue", alpha = 0.7) +
+  labs(title = "Distribución de los Residuos", x = "Residuos", y = "Frecuencia")
+# Gráfico de residuos vs valores ajustados
+ggplot(data = datos, aes(x = fitted(modelo), y = residuals(modelo))) +
+  geom_point() +
+  geom_hline(yintercept = 0, col = "red") +
+  labs(title = "Residuos vs Valores Ajustados", x = "Valores Ajustados", y = "Residuos")
+
+# Histograma de residuos para evaluar normalidad
+ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
+  geom_histogram(bins = 20, fill = "blue", alpha = 0.7) +
+  labs(title = "Distribución de los Residuos", x = "Residuos", y = "Frecuencia")
+
+```
+El análisis de los residuos muestra que estos siguen una distribución aproximadamente normal, lo cual se confirma con el histograma que no presenta colas largas ni desplazamientos significativos. Esto sugiere que no hay grandes violaciones de los supuestos de normalidad, lo que respalda la validez del modelo. Además, el gráfico de residuos vs valores ajustados El gráfico de residuos vs valores ajustados muestra una forma que sugiere una ligera tendencia en los residuos, especialmente cerca de los valores de x=25 y y=0 (línea roja). Aunque la mayoría de los residuos están dispersos de manera aleatoria alrededor de la línea cero, esta leve concentración en una zona particular podría indicar la presencia de heterocedasticidad, es decir, que la varianza de los residuos no es constante en todo el rango de valores ajustados. Este patrón podría sugerir que el modelo no captura completamente ciertos aspectos de los datos en esos puntos específicos. A pesar de esto, la distribución general de los residuos es adecuada, lo que indica que el modelo es relativamente bueno, aunque se podrían considerar transformaciones o la inclusión de nuevas variables para mejorar su precisión en las áreas donde se observa esta ligera tendencia. 
