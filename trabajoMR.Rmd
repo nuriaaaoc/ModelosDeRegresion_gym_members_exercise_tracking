@@ -1,6 +1,6 @@
 ---
 title: "gym_members"
-author: "Nuria Oviedo, Aitana Garcia "
+author: "Nuria Oviedo, Aitana Garcia y Marcos López"
 date: "2025-02-06"
 output: html_document
 ---
