@@ -43,10 +43,12 @@ library(ggplot2)
 library(car) # pruebas de diagnóstico
 library(lmtest) # prueba de homocedasticidad
 library(dplyr) # manipulación de datos
-library(GGally) # visualización avanzada
+library(GGally) # visualización avanzad
 library(HistData) # datos históricos de Galton
 library(gridExtra) # organizar múltiples gráficos
 library(caret)
+library(corrplot)
+
 ```
 
 
@@ -189,6 +191,15 @@ La linea nos muestra una relación alcista segun las calorias quemadas y el tiem
 # Correlación
 
 Vamos a calcular y entender la correlación entre las variables de nuestro estudio.
+
+```{r}
+# Cogemos solo las variables numéricas para hacer matrices de correlación
+train_num <- select_if(train, is.numeric)
+
+# Matriz de correlación de variables cuantitativas.
+m <- cor(train_num, use = "complete.obs")
+corrplot(m,type = "upper", method="number")
+```
 
 ## Covarianza
 ```{r}
