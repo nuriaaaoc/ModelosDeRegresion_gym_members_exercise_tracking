@@ -46,6 +46,7 @@ library(dplyr) # manipulación de datos
 library(GGally) # visualización avanzada
 library(HistData) # datos históricos de Galton
 library(gridExtra) # organizar múltiples gráficos
+library(caret)
 ```
 
 
