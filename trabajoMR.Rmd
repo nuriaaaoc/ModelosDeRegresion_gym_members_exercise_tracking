@@ -174,6 +174,20 @@ cat("El coeficiente de correlación de Pearson entre la duración de la sesión 
 ```
 
 La correlación de Pearson nos confirma lo que habiamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y como es positivo, las variables aumentan a la par.
+# tabla ANOVA
+tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
+la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. El resto de factores no son influyentes en la quema de calorías
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo <- lm(Calories_Burned ~ Age + Gender  + Height..m.+ Weight..kg. + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration..hours.+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake..liters. + Workout_Frequency..days.week. + Experience_Level + BMI , data = datos)
+
+# Obtener la tabla ANOVA
+tabla_anova <- anova(modelo)
+cat("Tabla ANOVA:\n")
+#mostrar tabla anova
+print(tabla_anova)
+```
+
 
 # Análisis de Residuos
 
