@@ -72,7 +72,7 @@ Al ver esto podemos ver que estos datos son en su mayoría de tipo numérico o e
 
 ## Valores faltantes.
 ```{r}
-colSums(is.na(datos))
+sum(is.na(datos))
 ```
 
 Vemos que no tenemos ningun datos faltante o missing entre nuestros datos.
@@ -81,18 +81,46 @@ Vemos que no tenemos ningun datos faltante o missing entre nuestros datos.
 ```{r}
 head(datos, 5)
 ```
+Realizamos la partición de nuestros datos.
+
+```{r}
+# Ponemos una semilla para que la partición sea siempre la misma
+set.seed(1)
+
+# Buscamos los indices para la parte de train y de test y val
+indices_train <- createDataPartition(datos$Calories_Burned, p = 0.7, list = FALSE)
+
+# Creamos la variable train y test_val
+train <- datos[indices_train, ]
+test_val <- datos[-indices_train, ]
+
+# Buscamos los indices para test
+indices_test <- createDataPartition(test_val$Calories_Burned, p = 0.5, list = FALSE)
+
+# Creamos la variabe test y val
+test <- test_val[indices_test, ]
+val <- test_val[-indices_test, ]
+```
+
+Miramos la información de nuestros datos de entrenamiento
+
+```{r}
+dim(train)
+head(train)
+str(train)
+```
 
 # EDA
 
 Antes de nada vamos a ver información de nuestra variable objetivo importante
 ```{r}
-summary(datos$Calories_Burned)
+summary(train$Calories_Burned)
 ```
 Con esto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorias y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
 
 Vamos a ver la forma de nuestra variable objetivo gráficamente.
 ```{r}
-datos |> ggplot(mapping = aes(x = Calories_Burned)) +
+train |> ggplot(mapping = aes(x = Calories_Burned)) +
   geom_histogram()
 ```
 
@@ -106,7 +134,7 @@ Las variables que se involucran seria el tiempo de duración de las sesiones de 
 Miramos los datos de la variable explicativa
 
 ```{r}
-summary(datos$Session_Duration..hours.)
+summary(train$Session_Duration..hours.)
 ```
 
 Podemos ver que las personas entrenan una media de 1.256 horas, lo que hace 1 hora y 15 minutos, además podemos ver que dentro de los datos registrados, el mínimo de horas que se ha almacenado es de 0.5 horas y el máximo es de 2 horas.
@@ -114,14 +142,14 @@ Podemos ver que las personas entrenan una media de 1.256 horas, lo que hace 1 ho
 Observamos los datos de esas dos variables.
 
 ```{r}
-problema <- datos |> select(Session_Duration..hours., Calories_Burned)
+problema <- train |> select(Session_Duration..hours., Calories_Burned)
 head(problema, 5)
 ```
 
 Viendo esta cabecera, se puede ver a simple vista que si que puede haber una realción entre la duración de el entrenamiento con las calorias que se queman, para verlo más claro, representamos ambas variables graficamente.
 
 ```{r}
-datos |>
+train |>
   ggplot(mapping = aes(x = Calories_Burned, y = Session_Duration..hours.)) +
   geom_point()
 ```
@@ -130,14 +158,14 @@ Dado que tenemos una relación positiva entre estas dos variables, voy a propone
 
 ```{r}
 # Creamos el modelo lineal y lo analizamos
-model <- lm(Calories_Burned ~ Session_Duration..hours., data = datos)
+model <- lm(Calories_Burned ~ Session_Duration..hours., data = train)
 summary(model)
 ```
 
 Ahora vamos a ver el modelo gráficamente.
 
 ```{r}
-datos |> 
+train |> 
   ggplot(mapping = aes(x = Calories_Burned, y = Session_Duration..hours.)) +
   geom_point() +
   geom_smooth(method = "lm", col = "red") +
@@ -155,8 +183,8 @@ Vamos a calcular y entender la correlación entre las variables de nuestro estud
 
 ## Covarianza
 ```{r}
-calorias <- datos$Calories_Burned
-sesion <- datos$Session_Duration..hours.
+calorias <- train$Calories_Burned
+sesion <- train$Session_Duration..hours.
 
 covarianza <- round(cov(calorias, sesion), 3)
 
@@ -169,7 +197,7 @@ Con esta covarianza podemos observar que ambas variables aumentan juntas, ademá
 Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
 
 ```{r}
-correlacion_pearson <- cor(datos$Session_Duration..hours., datos$Calories_Burned, use = "complete.obs")
+correlacion_pearson <- cor(train$Session_Duration..hours., train$Calories_Burned, use = "complete.obs")
 cat("El coeficiente de correlación de Pearson entre la duración de la sesión y las calorías quemadas es:", round(correlacion_pearson, 8), "\n")
 ```
 
@@ -179,7 +207,7 @@ tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que 
 la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. El resto de factores no son influyentes en la quema de calorías
 ```{r}
 # Ajustar el modelo de regresión lineal
-modelo <- lm(Calories_Burned ~ Age + Gender  + Height..m.+ Weight..kg. + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration..hours.+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake..liters. + Workout_Frequency..days.week. + Experience_Level + BMI , data = datos)
+modelo <- lm(Calories_Burned ~ Age + Gender  + Height..m.+ Weight..kg. + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration..hours.+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake..liters. + Workout_Frequency..days.week. + Experience_Level + BMI , data = train)
 
 # Obtener la tabla ANOVA
 tabla_anova <- anova(modelo)
@@ -279,8 +307,8 @@ Calculamos el leverage de las observaciones y graficamos las observaciones con l
 leverage <- hatvalues(model)
 
 # Umbral para leverage alto
-n <- nrow(datos)
-p <- length(coef(model))  # Número de parámetros (incluyendo el intercepto)
+n <- nrow(train)
+p <- length(coef(train))  # Número de parámetros (incluyendo el intercepto)
 leverage_threshold <- 2 * p / n
 
 # Identificar observaciones con leverage alto
@@ -415,7 +443,7 @@ Analizamos los residuos y verificamos la validez de los supuestos del modelo.
 
 ```{r}
 # Gráfico de residuos vs valores ajustados
-ggplot(data = datos, aes(x = fitted(modelo), y = residuals(modelo))) +
+ggplot(data = train, aes(x = fitted(modelo), y = residuals(modelo))) +
   geom_point() +
   geom_hline(yintercept = 0, col = "red") +
   labs(title = "Residuos vs Valores Ajustados", x = "Valores Ajustados", y = "Residuos")
