@@ -172,6 +172,15 @@ Dado que tenemos una relación positiva entre estas dos variables, voy a propone
 model <- lm(Calories_Burned ~ Session_Duration, data = train)
 summary(model)
 ```
+observamos que el valor del intercepto es de 5,659 aunque midiendo el tiempo en horas no es muy relevante que con o horas entrenadas quemes 5,659
+
+la pendiente tiene unvalor de 714.1 es decir por cada hora extra a la sesión de entrenamiento se queman 714.1 calorías más en promedio
+
+al tener un p value < 2.2e^-16 podemos afirmar que la duración es altamente significativo
+
+observamos que R^2 es 0.8114 un ajuste bastante bueno
+
+Error estándar de los residuos = 116: En promedio, las predicciones de nuestro modelo tienen un error de ±116 calorías.
 
 Ahora vamos a ver el modelo gráficamente.
 
