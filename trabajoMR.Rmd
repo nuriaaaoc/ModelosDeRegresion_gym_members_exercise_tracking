@@ -497,8 +497,91 @@ El análisis de los residuos muestra que estos siguen una distribución aproxima
 
 
 ##seleccion de variables
+método lasso
+
+```{r}
+# Instalar paquete si no está instalado
+if (!require(glmnet)) install.packages("glmnet", dependencies = TRUE)
+
+# Cargar librería
+library(glmnet)
+
+train$Gender <- as.numeric(as.factor(train$Gender))
+train$Workout_Type <- as.numeric(as.factor(train$Workout_Type))
+
+# ---- 1. Preparar los datos ----
+# Separar variables predictoras (X) y la variable objetivo (y)
+X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])  # Matriz de predictores
+y <- train$Calories_Burned  # Variable objetivo
+
+# ---- 2. Ajustar modelo Lasso ----
+set.seed(123)  # Fijar semilla para reproducibilidad
+modelo_lasso <- cv.glmnet(X, y, alpha = 1,  # Lasso (alpha = 1)
+                          nfolds = 10,  # Validación cruzada 10-fold
+                          type.measure = "mse")  # Minimizar el error cuadrático medio
+
+# ---- 3. Obtener la mejor lambda ----
+lambda_opt <- modelo_lasso$lambda.min
+cat("Mejor lambda:", lambda_opt, "\n")
+
+# ---- 4. Hacer predicciones ----
+y_pred <- predict(modelo_lasso, s = lambda_opt, newx = X)
+
+# ---- 5. Evaluación del modelo ----
+mse <- mean((y - y_pred)^2)  # Error cuadrático medio
+rmse <- sqrt(mse)  # Raíz del error cuadrático medio
+r2 <- cor(y, y_pred)^2  # Coeficiente de determinación
+
+cat("MSE:", mse, "\n")
+cat("RMSE:", rmse, "\n")
+cat("R²:", r2, "\n")
+
+# ---- 6. Ver coeficientes seleccionados por Lasso ----
+coeficientes <- coef(modelo_lasso, s = lambda_opt)
+print(coeficientes)
+
+
+```
+Ridge
+
+```{r}
+# Preparar los datos
+# Crear la matriz de características X (sin la variable dependiente)
+X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])
+
+# Crear el vector de la variable dependiente Y
+y <- train$Calories_Burned
+
+# Ajustar el modelo Ridge con validación cruzada (alpha = 0)
+modelo_ridge <- cv.glmnet(X, y, alpha = 0)
+
+# Ver el valor óptimo de lambda
+cat("Mejor lambda:", modelo_ridge$lambda.min, "\n")
+
+# Resumen del modelo
+summary(modelo_ridge)
+
+# Graficar la curva de validación cruzada
+plot(modelo_ridge)
+
+# Hacer predicciones con el valor óptimo de lambda
+y_pred_ridge <- predict(modelo_ridge, s = "lambda.min", newx = X)
+
+# Calcular el MSE (Error Cuadrático Medio)
+mse_ridge <- mean((y - y_pred_ridge)^2)
+cat("MSE del modelo Ridge:", mse_ridge, "\n")
+
+# Calcular el RMSE (Raíz del Error Cuadrático Medio)
+rmse_ridge <- sqrt(mse_ridge)
+cat("RMSE del modelo Ridge:", rmse_ridge, "\n")
+
+# Calcular el R² (Coeficiente de Determinación)
+r2_ridge <- 1 - sum((y - y_pred_ridge)^2) / sum((y - mean(y))^2)
+cat("R² del modelo Ridge:", r2_ridge, "\n")
+```
+
 elastic_net
-Para estimar las calorías que se queman, creomos que el modelo Elastic Net es una gran opción porque une las ventajas de Lasso y Ridge. Siendo capaz de manejar la multicolinealidad y también selecciona variables, lo cual es muy útil cuando hay muchas variables que están relacionadas. Además, Elastic Net es adaptable, ya que permite modificar el parámetro alpha, lo que le ayuda a ajustarse mejor a las particularidades del conjunto de datos y a equilibrar el sesgo con la varianza. 
+ 
 ```{r}
 # Cargar la librería glmnet
 library(glmnet)
@@ -534,5 +617,14 @@ cat("R² del modelo Elastic Net:", r2_elastic_net, "\n")
 
 ```
 ``
-como observamos tenemos un lambda = 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
+
+comparacion de los tres modelo 
+Elastic Net tiene un R² de 0.979 y un RMSE de 38.98. Este modelo muestra un buen ajuste a los datos, con el 97.9% de la variabilidad en las calorías quemadas. La combinación de penalizaciones de Ridge y Lasso le permite manejar bien tanto la multicolinealidad como realizar una selección de variables. Aunque su MSE es de 1519.821, este valor se encuentra dentro de un rango razonable.
+
+Ridge, por su parte, tiene un R² de 0.9676 y un RMSE de 48.42, lo que indica que aunque el modelo también tiene un buen ajuste, no es tan preciso como Elastic Net en términos de predicción.Su MSE es de 2344.048, es decir, más alto en comparación con los otros dos modelos.
+
+Lasso es bastante similar al modelo Elastic Net, con un R² de 0.979 y un RMSE de 38.98. Al igual que Elastic Net, Lasso ha realizado una selección de variables, eliminando aquellas que no aportan significativamente a la predicción en nuestro caso Gender, Max_BPM, Workout_Type, Water_Intake, Experience_Level.
+
+Tras comparar los tres modelos decidimos que para estimar las calorías que se queman, creomos que el modelo Elastic Net es una gran opción porque une las ventajas de Lasso y Ridge. Siendo capaz de manejar la multicolinealidad y también selecciona variables, lo cual es muy útil cuando hay muchas variables que están relacionadas. Además, Elastic Net es adaptable, ya que permite modificar el parámetro alpha, lo que le ayuda a ajustarse mejor a las particularidades del conjunto de datos y a equilibrar el sesgo con la varianza.
+como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
 
