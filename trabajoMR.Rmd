@@ -494,3 +494,45 @@ ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
 
 ```
 El análisis de los residuos muestra que estos siguen una distribución aproximadamente normal, lo cual se confirma con el histograma que no presenta colas largas ni desplazamientos significativos. Esto sugiere que no hay grandes violaciones de los supuestos de normalidad, lo que respalda la validez del modelo. Además, el gráfico de residuos vs valores ajustados El gráfico de residuos vs valores ajustados muestra una forma que sugiere una ligera tendencia en los residuos, especialmente cerca de los valores de x=25 y y=0 (línea roja). Aunque la mayoría de los residuos están dispersos de manera aleatoria alrededor de la línea cero, esta leve concentración en una zona particular podría indicar la presencia de heterocedasticidad, es decir, que la varianza de los residuos no es constante en todo el rango de valores ajustados. Este patrón podría sugerir que el modelo no captura completamente ciertos aspectos de los datos en esos puntos específicos. A pesar de esto, la distribución general de los residuos es adecuada, lo que indica que el modelo es relativamente bueno, aunque se podrían considerar transformaciones o la inclusión de nuevas variables para mejorar su precisión en las áreas donde se observa esta ligera tendencia. 
+
+
+##seleccion de variables
+elastic_net
+Para estimar las calorías que se queman, creomos que el modelo Elastic Net es una gran opción porque une las ventajas de Lasso y Ridge. Siendo capaz de manejar la multicolinealidad y también selecciona variables, lo cual es muy útil cuando hay muchas variables que están relacionadas. Además, Elastic Net es adaptable, ya que permite modificar el parámetro alpha, lo que le ayuda a ajustarse mejor a las particularidades del conjunto de datos y a equilibrar el sesgo con la varianza. 
+```{r}
+# Cargar la librería glmnet
+library(glmnet)
+
+# Preparar los datos
+X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])
+y <- train$Calories_Burned
+
+# Ajustar el modelo Elastic Net
+# alpha = 0.5 es una mezcla equilibrada entre Ridge y Lasso
+modelo_elastic_net <- cv.glmnet(X, y, alpha = 0.5)
+
+# Ver el mejor valor de lambda
+cat("Mejor lambda para Elastic Net:", modelo_elastic_net$lambda.min, "\n")
+
+# Resumen del modelo
+summary(modelo_elastic_net)
+
+# Hacer predicciones con el valor óptimo de lambda
+y_pred_elastic_net <- predict(modelo_elastic_net, s = "lambda.min", newx = X)
+
+# Calcular el MSE (Error Cuadrático Medio)
+mse_elastic_net <- mean((y - y_pred_elastic_net)^2)
+cat("MSE del modelo Elastic Net:", mse_elastic_net, "\n")
+
+# Calcular el RMSE (Raíz del Error Cuadrático Medio)
+rmse_elastic_net <- sqrt(mse_elastic_net)
+cat("RMSE del modelo Elastic Net:", rmse_elastic_net, "\n")
+
+# Calcular el R² (Coeficiente de Determinación)
+r2_elastic_net <- 1 - sum((y - y_pred_elastic_net)^2) / sum((y - mean(y))^2)
+cat("R² del modelo Elastic Net:", r2_elastic_net, "\n")
+
+```
+``
+como observamos tenemos un lambda = 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
+
