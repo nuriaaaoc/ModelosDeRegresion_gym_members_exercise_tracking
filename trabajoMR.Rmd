@@ -48,7 +48,7 @@ library(HistData) # datos históricos de Galton
 library(gridExtra) # organizar múltiples gráficos
 library(caret)
 library(corrplot)
-
+library(MASS) 
 ```
 
 
@@ -505,8 +505,8 @@ modelo_vacio <- lm(Calories_Burned ~ 1, data = train)
 
 # Selección hacia adelante (Forward Selection)
 modelo_forward <- step(modelo_vacio, 
-                       scope = ~ Age + Gender + Weight + Height + Avg_BPM + Resting_BPM + 
-                                Session_Duration + Workout_Type + BMI, 
+                       scope = ~ Age + Gender + Weight + Height +Max_BPM+ Avg_BPM + Resting_BPM + 
+                                Session_Duration + Workout_Type +Fat_Percentage +Water_Intake + BMI + Workout_Frequency+ Experience_Level, 
                        direction = "forward")
 
 # Ver resumen del modelo seleccionado
@@ -528,7 +528,8 @@ Workout_Type tiene un coeficiente negativo, pero no es muy diferente de cero (p 
 Método Backward
 ```{r}
 # Ajustamos el modelo inicial con todas las variables
-modelo_inicial <- lm(Calories_Burned ~ Age + Gender + Weight + Height + Avg_BPM + Resting_BPM + Session_Duration + Workout_Type + BMI, data = train)
+modelo_inicial <- lm(Calories_Burned ~ Age + Gender + Weight + Height +Max_BPM+ Avg_BPM + Resting_BPM + 
+                                Session_Duration + Workout_Type +Fat_Percentage +Water_Intake + BMI + Workout_Frequency+ Experience_Level,  data = train)
 
 # Aplicamos el método backward para la eliminación de variables
 modelo_backward <- step(modelo_inicial, direction = "backward", trace = 1)
@@ -536,18 +537,13 @@ modelo_backward <- step(modelo_inicial, direction = "backward", trace = 1)
 # Mostrar resumen del modelo final después de la selección
 summary(modelo_backward)
 
+
 ```
 
 
 Método Stepwise
 
 ```{r}
-# Cargar librerías necesarias
-library(MASS)  # Para algunos modelos y funciones
-library(caret) # Para manejar particiones de datos, si es necesario
-
-# Suponiendo que tienes un conjunto de datos llamado 'train'
-# Asegúrate de ajustar el conjunto de datos de acuerdo a tus necesidades
 
 # Modelo completo: Usamos todas las variables
 modelo_completo <- lm(Calories_Burned ~ ., data = train)
@@ -558,8 +554,7 @@ modelo_stepwise <- step(modelo_completo, direction = "both", trace = 1)
 # Ver el resumen del modelo ajustado
 summary(modelo_stepwise)
 
-# Si quieres el modelo solo con las variables seleccionadas, puedes usar:
-modelo_stepwise$call
+
 
 ```
 
