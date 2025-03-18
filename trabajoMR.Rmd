@@ -497,6 +497,72 @@ El análisis de los residuos muestra que estos siguen una distribución aproxima
 
 
 ##seleccion de variables
+
+Método Forward
+```{r}
+# Modelo vacío (sin variables)
+modelo_vacio <- lm(Calories_Burned ~ 1, data = train)
+
+# Selección hacia adelante (Forward Selection)
+modelo_forward <- step(modelo_vacio, 
+                       scope = ~ Age + Gender + Weight + Height + Avg_BPM + Resting_BPM + 
+                                Session_Duration + Workout_Type + BMI, 
+                       direction = "forward")
+
+# Ver resumen del modelo seleccionado
+summary(modelo_forward)
+
+```
+El modelo final tras usar el método fordward incluye las siguientes variables: Session_Duration, Avg_BPM, Gender, Age, Resting_BPM, y Workout_Type.
+
+Resultados:
+R²: 0.979 esto indica que el modelo explica aproximadamente el 97.9% de la variabilidad en las calorías quemadas.
+AIC: 5025.39, que es un valor bastante bajo, lo que sugiere un buen ajuste del modelo.
+Coeficientes:
+Session_Duration tiene un coeficiente positivo y significativo, lo que indica que a mayor duración de la sesión, mayor cantidad de calorías quemadas.
+Avg_BPM y Gender también son muy significativos, tienen bastante impacto en la cantidad de calorías quemadas.
+Age tiene un coeficiente negativo, lo que sugiere que, a medida que la edad aumenta, las calorías quemadas tienden a disminuir, aunque en una magnitud pequeña.
+Resting_BPM tiene un coeficiente positivo, indicando que a mayor BPM en reposo, mayor número de calorías quemadas.
+Workout_Type tiene un coeficiente negativo, pero no es muy diferente de cero (p > 0.05), lo que puede indicar que no es una variable determinante en este caso.
+
+Método Backward
+```{r}
+# Ajustamos el modelo inicial con todas las variables
+modelo_inicial <- lm(Calories_Burned ~ Age + Gender + Weight + Height + Avg_BPM + Resting_BPM + Session_Duration + Workout_Type + BMI, data = train)
+
+# Aplicamos el método backward para la eliminación de variables
+modelo_backward <- step(modelo_inicial, direction = "backward", trace = 1)
+
+# Mostrar resumen del modelo final después de la selección
+summary(modelo_backward)
+
+```
+
+
+Método Stepwise
+
+```{r}
+# Cargar librerías necesarias
+library(MASS)  # Para algunos modelos y funciones
+library(caret) # Para manejar particiones de datos, si es necesario
+
+# Suponiendo que tienes un conjunto de datos llamado 'train'
+# Asegúrate de ajustar el conjunto de datos de acuerdo a tus necesidades
+
+# Modelo completo: Usamos todas las variables
+modelo_completo <- lm(Calories_Burned ~ ., data = train)
+
+# Aplicar el método Stepwise (tanto Forward como Backward)
+modelo_stepwise <- step(modelo_completo, direction = "both", trace = 1)
+
+# Ver el resumen del modelo ajustado
+summary(modelo_stepwise)
+
+# Si quieres el modelo solo con las variables seleccionadas, puedes usar:
+modelo_stepwise$call
+
+```
+
 método lasso
 
 ```{r}
