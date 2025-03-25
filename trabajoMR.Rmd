@@ -35,6 +35,24 @@ Según la descripción oficial de los datos, las variables que conforman el conj
 Dado que es un problema de regresión, la variable objetivo (Cantidad de calorias quemadas durante la sesión de entrenamiento) es continua.
 
 
+# Brain storming
+
+1. Predicción de Calorías Quemadas
+Objetivo: Modelar la cantidad de calorías quemadas en función de las variables disponibles.
+Variables predictoras: Edad, Género, Peso, Altura, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Workout_Type, Fat_Percentage, Water_Intake, Workout_Frequency, Experience_Level, BMI.
+
+2. Clasificación del Tipo de Entrenamiento a partir de Variables Fisiológicas
+Objetivo: Predecir el Workout_Type en función de variables como Max_BPM, Avg_BPM, Resting_BPM, Calories_Burned, Session_Duration y BMI.
+
+3. Duracion de la sesión ideal 
+Variables predictoras: Edad, Género, Peso, Altura, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Workout_Type, Fat_Percentage, Workout_Frequency, Experience_Level, BMI.
+
+4. Impacto del Nivel de Hidratación en el Rendimiento
+Objetivo: Analizar cómo el Water_Intake afecta variables como Max_BPM, Avg_BPM, Calories_Burned o Session_Duration.
+
+
+Decidimos trabajar en las ideas 1 y 4.
+
 # Cargar paquetes necesarios
 
 ```{r}
@@ -136,6 +154,150 @@ train |> ggplot(mapping = aes(x = Calories_Burned)) +
 ```
 
 Viendo este histograma se puede ver como las calorias quemadas se acerca a una distribución normal, viendo los datos de antes, se ve que este histograma si que tiene sentido. 
+
+
+## Distribucion de Calories_burned por genero
+
+```{r}
+train |> ggplot(aes(x = Gender, y = Calories_Burned, fill = Gender)) +
+  geom_boxplot() +
+  labs(title = "Distribución de Calorías Quemadas por Género",
+       x = "Género", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+
+Este gráfico permite analizar si hay diferencias significativas en las calorías quemadas entre hombres y mujeres, podemos observar que la media de calorías quemadas en hombres es ligeramente mayor aunque no hay una diferencia significativa.
+
+## Relación entre Calories_Burned y Session_Duration
+
+```{r}
+train |> ggplot(aes(x = Session_Duration, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Duración del Entrenamiento y Calorías Quemadas",
+       x = "Duración del Entrenamiento (horas)", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+Podemos ver que hay una tendencia clara entre el tiempo de entrenamiento y las calorías quemadas
+
+## Correlación entre Calories_Burned y Variables Predictoras
+
+```{r}
+cor_matrix <- cor(train |> select(Age, Weight, Height, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Fat_Percentage, Water_Intake, Workout_Frequency, Experience_Level, BMI, Calories_Burned))
+corrplot(cor_matrix, method = "color", tl.cex = 0.7, type = "lower")
+
+```
+
+
+
+## Impacto del Nivel de Hidratación en el Rendimiento
+
+### Relación entre Water_Intake y Calories_Burned
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Calorías Quemadas",
+       x = "Consumo de Agua (litros)", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+Podemeos observar una tendencia positiva en la que mayor hidratación esté asociada con un mayor gasto calórico.
+
+
+### Relación entre Water_Intake y Max_BPM / Avg_BPM
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Max_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Máxima",
+       x = "Consumo de Agua (litros)", y = "Max BPM") +
+  theme_minimal()
+
+train |> ggplot(aes(x = Water_Intake, y = Avg_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Promedio",
+       x = "Consumo de Agua (litros)", y = "Avg BPM") +
+  theme_minimal()
+
+```
+Por lo que se observa en la imagen, la relación entre la ingesta de agua y la frecuencia cardíaca máxima (Max BPM) es prácticamente inexistente. La línea de tendencia roja es casi horizontal, lo que indica una correlación muy baja o nula entre estas variables.
+
+### Comparación del rendimiento cardíaco según niveles de hidratación
+
+```{r}
+train %>%
+  mutate(Water_Intake_Level = case_when(
+    Water_Intake < 2 ~ "Baja",
+    Water_Intake >= 2 & Water_Intake < 3 ~ "Media",
+    Water_Intake >= 3 ~ "Alta"
+  )) %>%
+  ggplot(aes(x = Water_Intake_Level, y = Avg_BPM, fill = Water_Intake_Level)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Frecuencia Cardíaca Promedio según Consumo de Agua",
+       x = "Nivel de Ingesta de Agua",
+       y = "Frecuencia Cardíaca Promedio (BPM)") +
+  theme_minimal() +
+  scale_fill_manual(values = c("red", "yellow", "green"))
+
+```
+
+```{r}
+cor.test(train$Water_Intake, train$Avg_BPM)
+
+```
+El resultado del test de correlación de Pearson indica que no hay una relación significativa entre el consumo de agua y la frecuencia cardíaca promedio (Avg_BPM):
+
+Coeficiente de correlación (r): 0.0067 → Casi nula, lo que sugiere que no hay una asociación lineal entre ambas variables.
+p-valor: 0.8608 → Muy alto, lo que significa que no podemos rechazar la hipótesis nula (es decir, no hay evidencia estadística de una relación).
+Intervalo de confianza al 95%: [-0.068, 0.081] → Incluye el 0, reforzando que la relación es débil o inexistente.
+
+
+```{r}
+ggplot(train, aes(x = Water_Intake, y = Session_Duration)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  labs(title = "Relación entre Ingesta de Agua y Duración del Entrenamiento",
+       x = "Consumo de Agua (litros)", 
+       y = "Duración del Entrenamiento (horas)") +
+  theme_minimal()
+
+```
+Observamos una pendiente positiva, indicando que las personas más hidratadas entrenan por más tiempo.
+
+### Correlación entre Consumo de Agua y Duración del Entrenamiento
+
+```{r}
+cor.test(train$Water_Intake, train$Session_Duration)
+
+```
+Relación entre Consumo de Agua y Duración del Entrenamiento
+
+Correlación: 0.246 (moderada)
+p-valor: 6.23e-11 (muy significativo)
+
+ Hay una relación positiva y significativa entre la ingesta de agua y la duración del entrenamiento. Esto sugiere que las personas que se hidratan más tienden a entrenar por más tiempo.
+
+
+### Correlación entre Consumo de Agua y Calorías Quemadas
+
+```{r}
+cor.test(train$Water_Intake, train$Calories_Burned)
+
+```
+
+Correlación: 0.330 (moderada)
+p-valor: < 2.2e-16 (extremadamente significativo)
+
+Existe una relación clara entre la hidratación y la cantidad de calorías quemadas. Esto indica que una mayor ingesta de agua podría estar asociada con un mayor gasto energético durante el ejercicio.
+
+
+
 
 # Modelización estadística.
 Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorias que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorias quema durante el entrenamiento. 
