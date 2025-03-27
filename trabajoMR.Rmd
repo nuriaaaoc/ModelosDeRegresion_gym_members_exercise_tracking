@@ -702,6 +702,10 @@ summary(modelo_backward)
 
 ```
 
+El modelo final, después de aplicar el método backward, utiliza las siguientes variables:
+Age, Gender, Avg_BPM, Session_Duration ya que tienen coeficientes significativos con valores p menores a 0.05, lo que indica que estas variables tienen un impacto relevante sobre Calories_Burned.
+
+Se han eliminaron variables como Max_BPM, water_intake, fat_percentage,  workout_frecuency y experience_level debido a su baja contribución al modelo. El R² de 0.9792 indica que el modelo explica el 97.92% de la variabilidad en las calorías quemadas. El error estándar residual de 39.12 sugiere que el modelo tiene una variabilidad de aproximadamente 39.12 calorías en las predicciones.Estadística F de 3523 con un p-valor muy pequeño (menor a 2e-16), lo que indica que el modelo en su conjunto es altamente significativo. Aunque el modelo es preciso, variables como workout_type no son del todo significativas y podrían eliminarse para mejorar el modelo.
 
 Método Stepwise
 
