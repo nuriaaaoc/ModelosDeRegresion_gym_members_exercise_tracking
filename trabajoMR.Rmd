@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-# Introducción
+# 0. Introducción
 
 El conjunto de datos contiene un análisis de patrines de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
 
@@ -35,7 +35,7 @@ Según la descripción oficial de los datos, las variables que conforman el conj
 Dado que es un problema de regresión, la variable objetivo (Cantidad de calorias quemadas durante la sesión de entrenamiento) es continua.
 
 
-# Brain storming
+## Brain storming
 
 1. Predicción de Calorías Quemadas
 Objetivo: Modelar la cantidad de calorías quemadas en función de las variables disponibles.
@@ -53,7 +53,7 @@ Objetivo: Analizar cómo el Water_Intake afecta variables como Max_BPM, Avg_BPM,
 
 Decidimos trabajar en las ideas 1 y 4.
 
-# Cargar paquetes necesarios
+## Cargar paquetes necesarios
 
 ```{r}
 
@@ -67,10 +67,12 @@ library(gridExtra) # organizar múltiples gráficos
 library(caret)
 library(corrplot)
 library(MASS) 
+library(tidyverse)
+library(minpack.lm)
 ```
 
 
-# Data undestandig
+# 1. Data undestandig
 
 ## Cargamos los datos.
 ```{r}
@@ -139,7 +141,7 @@ head(train)
 str(train)
 ```
 
-# EDA
+# 2. EDA
 
 Antes de nada vamos a ver información de nuestra variable objetivo importante
 ```{r}
@@ -150,7 +152,8 @@ Con esto nos da una idea de la cantidad de calorias que las personas pueden quem
 Vamos a ver la forma de nuestra variable objetivo gráficamente.
 ```{r}
 train |> ggplot(mapping = aes(x = Calories_Burned)) +
-  geom_histogram()
+  geom_histogram(bins = 30) +
+  theme_bw()
 ```
 
 Viendo este histograma se puede ver como las calorias quemadas se acerca a una distribución normal, viendo los datos de antes, se ve que este histograma si que tiene sentido. 
@@ -181,16 +184,6 @@ train |> ggplot(aes(x = Session_Duration, y = Calories_Burned)) +
 
 ```
 Podemos ver que hay una tendencia clara entre el tiempo de entrenamiento y las calorías quemadas
-
-## Correlación entre Calories_Burned y Variables Predictoras
-
-```{r}
-cor_matrix <- cor(train |> select(Age, Weight, Height, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Fat_Percentage, Water_Intake, Workout_Frequency, Experience_Level, BMI, Calories_Burned))
-corrplot(cor_matrix, method = "color", tl.cex = 0.7, type = "lower")
-
-```
-
-
 
 ## Impacto del Nivel de Hidratación en el Rendimiento
 
@@ -299,7 +292,7 @@ Existe una relación clara entre la hidratación y la cantidad de calorías quem
 
 
 
-# Modelización estadística.
+# 3. Modelización estadística.
 Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorias que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorias quema durante el entrenamiento. 
 
 Las variables que se involucran seria el tiempo de duración de las sesiones de entrenamiento (variable explicativa) y la cantidad de calorias que quema una persona (variable respuesta).
@@ -315,9 +308,9 @@ Podemos ver que las personas entrenan una media de 1.256 horas, lo que hace 1 ho
 Observamos los datos de esas dos variables.
 
 ```{r}
-problema <- train |> select(Session_Duration, Calories_Burned)
-head(problema, 5)
+
 ```
+
 
 Viendo esta cabecera, se puede ver a simple vista que si que puede haber una realción entre la duración de el entrenamiento con las calorias que se queman, para verlo más claro, representamos ambas variables graficamente.
 
@@ -359,7 +352,7 @@ train |>
 
 La linea nos muestra una relación alcista segun las calorias quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negarivo ya que $\beta_1$ es 721.79 
 
-# Correlación
+## Correlación
 
 Vamos a calcular y entender la correlación entre las variables de nuestro estudio.
 
@@ -393,7 +386,7 @@ cat("El coeficiente de correlación de Pearson entre la duración de la sesión 
 ```
 
 La correlación de Pearson nos confirma lo que habiamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y como es positivo, las variables aumentan a la par.
-# tabla ANOVA
+## Tabla ANOVA
 tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
 la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. El resto de factores no son influyentes en la quema de calorías
 ```{r}
@@ -408,11 +401,11 @@ print(tabla_anova)
 ```
 
 
-# Análisis de Residuos
+## 3.1 Análisis de Residuos
 
 Realizamos el análisis de residuos para evaluar el modelo ajustado.
 
-### 1. Residuos vs Valores Ajustados
+### Residuos vs Valores Ajustados
 
 ```{r}
 # Obtener los residuos
@@ -432,7 +425,7 @@ Podemos observar que los residuos se distribuyen de manera aleatoria alrededor d
 
 
 
-### 2. Histograma de los Residuos
+### Histograma de los Residuos
 ```{r}
 # Graficar histograma de los residuos
 hist(residuos,
@@ -445,7 +438,7 @@ Podemos observar que nuestra distribución se acerca a una distribucion noral co
 
 
 
-### 3. QQ-Plot de los Residuos
+### QQ-Plot de los Residuos
 
 
 ```{r}
@@ -459,7 +452,7 @@ podemos observar que los puntos se alinean con la linea roja diagonal, por lo qu
 
 
 
-### 4. Prueba de Normalidad de los Residuos (Shapiro-Wilk)
+### Prueba de Normalidad de los Residuos (Shapiro-Wilk)
 
 ```{r}
 # Realizar la prueba de Shapiro-Wilk para normalidad de los residuos
@@ -475,9 +468,9 @@ Observamos que el p-valor obtenido es menor que 0.05, por lo que rechazaríamos 
 
 
 
-# Diagnóstico del Modelo: Pruebas de Homocedasticidad y Leverage
+## 3.2 Diagnóstico del Modelo: Pruebas de Homocedasticidad y Leverage
 
-### 1. Prueba de Homocedasticidad (Breusch-Pagan)
+### Prueba de Homocedasticidad (Breusch-Pagan)
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
@@ -489,7 +482,7 @@ print(bptest_result)
 La prueba de Breusch-Pagan muestra un valor p muy pequeño (< 2.2e-16), lo que indica que hay heterocedasticidad en el modelo. Esto significa que los errores del modelo no tienen una varianza constante, lo que puede afectar la precisión de los resultados. En términos más simples, la relación entre las variables puede cambiar dependiendo de ciertos factores, como la experiencia en el gimnasio o características físicas de los usuarios. Para corregir esto, se pueden hacer algunos ajustes, como transformar los datos, usar otro tipo de regresión o aplicar correcciones estadísticas para mejorar la fiabilidad del análisis.
 
 
-### 2. Análisis de Leverage 
+### Análisis de Leverage 
 
 Calculamos el leverage de las observaciones y graficamos las observaciones con leverage alto.
 
@@ -523,7 +516,7 @@ El gráfico de leverage muestra la influencia de cada observación en los coefic
 El gráfico de leverage muestra que la mayoría de las observaciones tienen un leverage bajo, lo que indica que no influyen demasiado en el ajuste del modelo. Sin embargo, hay una dispersión uniforme de puntos a ambos lados de la línea roja discontinua en niveles más altos de leverage. Esto sugiere que algunas observaciones tienen un mayor impacto en los coeficientes del modelo y podrían ser casos atípicos o influyentes. Es importante analizar estos puntos para determinar si afectan negativamente la estabilidad del modelo y, si es necesario, considerar ajustes o métodos robustos.
 
 
-### 3. Análisis de la Distancia de Cook
+### Análisis de la Distancia de Cook
 
  mide la influencia de cada observación sobre los coeficientes del modelo.
 
@@ -545,7 +538,7 @@ grafico_cooks_distance
 La distancia de Cook mide la influencia de cada observación sobre los coeficientes del modelo. Observaciones con una distancia de Cook alta (por encima del umbral) pueden ser altamente influyentes. En el gráfico, hay algunas observaciones con distancia de Cook alta, lo que indica que estas observaciones pueden estar afectando de manera desproporcionada el ajuste del modelo
 Podemos observar que la mayoría de las observaciones tienen una influencia baja en el modelo, ya que están acumuladas en la parte inferior, cerca de la línea roja. Sin embargo, hay algunas observaciones con una distancia de Cook alta, lo que indica que pueden estar afectando de manera significativa el ajuste del modelo. Estos puntos atípicos podrían estar influyendo de manera desproporcionada en los coeficientes, por lo que sería recomendable revisarlos para determinar si representan datos válidos o si es necesario aplicar ajustes para mejorar la estabilidad del modelo.
 
-## Análisis de DFFITS
+## 3.3 Análisis de DFFITS
 
 mide el cambio en los valores ajustados cuando se omite una observación.
 
@@ -567,7 +560,7 @@ grafico_dffits
 El gráfico de DFFITS muestra que la mayoría de las observaciones tienen poca influencia en el modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, hay algunas observaciones que superan este umbral, lo que indica que pueden estar afectando significativamente los valores ajustados. Estas observaciones deberían revisarse para determinar si representan datos válidos o si están distorsionando el modelo, ya que podrían influir en la precisión de las predicciones
 
 
-## Análisis de DFBETAS
+## 3.4 Análisis de DFBETAS
 
 nos indican la influencia de cada observación sobre cada coeficiente de la regresión.
 
@@ -593,7 +586,7 @@ grafico_dfbetas
 El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca influencia en los coeficientes del modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, algunas observaciones superan este umbral, lo que indica que pueden estar afectando de manera significativa los coeficientes de regresión. Es importante revisar estos puntos para determinar si están influyendo de manera desproporcionada en el modelo y, si es necesario, considerar ajustes para mejorar su estabilidad.
 
 
-#MODELO REGRESION LINEAL MÚLTIPLE
+# Modelo de regresión lineal multiple.
 
 ```{r}
 
@@ -628,7 +621,7 @@ gresión lineal múltiple indican que las variables como el peso, altura, géner
 El R² alto (0.9851) y la baja desviación estándar de los residuos sugieren que el modelo tiene un buen ajuste, pero la falta de significancia de algunas variables podría implicar que estas tienen un efecto indirecto sobre el BMI o que se requieren transformaciones adicionales del modelo. Este análisis resalta la importancia de los factores físicos y metabólicos en la predicción del BMI, pero también sugiere que un análisis más detallado y ajustes en las variables podrían mejorar la precisión del modelo.
 
 
-#Diagnóstico del Modelo
+## Diagnóstico del Modelo
 
 Analizamos los residuos y verificamos la validez de los supuestos del modelo.
 
@@ -644,7 +637,7 @@ ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
   geom_histogram(bins = 20, fill = "blue", alpha = 0.7) +
   labs(title = "Distribución de los Residuos", x = "Residuos", y = "Frecuencia")
 # Gráfico de residuos vs valores ajustados
-ggplot(data = datos, aes(x = fitted(modelo), y = residuals(modelo))) +
+ggplot(data = train, aes(x = fitted(modelo), y = residuals(modelo))) +
   geom_point() +
   geom_hline(yintercept = 0, col = "red") +
   labs(title = "Residuos vs Valores Ajustados", x = "Valores Ajustados", y = "Residuos")
@@ -658,9 +651,10 @@ ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
 El análisis de los residuos muestra que estos siguen una distribución aproximadamente normal, lo cual se confirma con el histograma que no presenta colas largas ni desplazamientos significativos. Esto sugiere que no hay grandes violaciones de los supuestos de normalidad, lo que respalda la validez del modelo. Además, el gráfico de residuos vs valores ajustados El gráfico de residuos vs valores ajustados muestra una forma que sugiere una ligera tendencia en los residuos, especialmente cerca de los valores de x=25 y y=0 (línea roja). Aunque la mayoría de los residuos están dispersos de manera aleatoria alrededor de la línea cero, esta leve concentración en una zona particular podría indicar la presencia de heterocedasticidad, es decir, que la varianza de los residuos no es constante en todo el rango de valores ajustados. Este patrón podría sugerir que el modelo no captura completamente ciertos aspectos de los datos en esos puntos específicos. A pesar de esto, la distribución general de los residuos es adecuada, lo que indica que el modelo es relativamente bueno, aunque se podrían considerar transformaciones o la inclusión de nuevas variables para mejorar su precisión en las áreas donde se observa esta ligera tendencia. 
 
 
-##seleccion de variables
+# 4. Seleccion de variables
 
 Método Forward
+
 ```{r}
 # Modelo vacío (sin variables)
 modelo_vacio <- lm(Calories_Burned ~ 1, data = train)
@@ -675,7 +669,8 @@ modelo_forward <- step(modelo_vacio,
 summary(modelo_forward)
 
 ```
-El modelo final tras usar el método forward incluye las siguientes variables: Session_Duration, Avg_BPM, Gender, Age, Resting_BPM, y Workout_Type.
+
+El modelo final tras usar el método forward incluye las siguientes variables: Session_Duration, Avg_BPM, Gender, Age, Resting_BPM, y Workout_Type
 
 Resultados:
 R²: 0.979 esto indica que el modelo explica aproximadamente el 97.9% de la variabilidad en las calorías quemadas.
@@ -688,6 +683,7 @@ Resting_BPM tiene un coeficiente positivo, indicando que a mayor BPM en reposo, 
 Workout_Type tiene un coeficiente negativo, pero no es muy diferente de cero (p > 0.05), lo que puede indicar que no es una variable determinante en este caso.
 
 Método Backward
+
 ```{r}
 # Ajustamos el modelo inicial con todas las variables
 modelo_inicial <- lm(Calories_Burned ~ Age + Gender + Weight + Height +Max_BPM+ Avg_BPM + Resting_BPM + 
@@ -701,11 +697,6 @@ summary(modelo_backward)
 
 
 ```
-
-El modelo final, después de aplicar el método backward, utiliza las siguientes variables:
-Age, Gender, Avg_BPM, Session_Duration ya que tienen coeficientes significativos con valores p menores a 0.05, lo que indica que estas variables tienen un impacto relevante sobre Calories_Burned.
-
-Se han eliminaron variables como Max_BPM, water_intake, fat_percentage,  workout_frecuency y experience_level debido a su baja contribución al modelo. El R² de 0.9792 indica que el modelo explica el 97.92% de la variabilidad en las calorías quemadas. El error estándar residual de 39.12 sugiere que el modelo tiene una variabilidad de aproximadamente 39.12 calorías en las predicciones.Estadística F de 3523 con un p-valor muy pequeño (menor a 2e-16), lo que indica que el modelo en su conjunto es altamente significativo. Aunque el modelo es preciso, variables como workout_type no son del todo significativas y podrían eliminarse para mejorar el modelo.
 
 Método Stepwise
 
@@ -723,8 +714,8 @@ summary(modelo_stepwise)
 
 
 ```
-El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la variabilidad en las calorías quemadas, lo cual podemos considerar un buen ajuste. El error residual estándar es de 39.12, por tanto las predicciones del modelo tienen un error promedio de 39.12 calorías. El estadístico F es 3523 con un p-valor muy bajo lo que indica que el modelo en su conjunto es altamente significativo. Se han eliminado variables como Max_BPM, Water_Intake, Fat_Percentage y Experience_Level, al no mejorar el ajuste del modelo. Las variables más influyentes son Age, Gender, Avg_BPM y Session_Duration, con un impacto directo en las calorías quemadas.
 
+El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la variabilidad en las calorías quemadas, lo cual podemos considerar un buen ajuste. El error residual estándar es de 39.12, por tanto las predicciones del modelo tienen un error promedio de 39.12 calorías. El estadístico F es 3523 con un p-valor muy bajo lo que indica que el modelo en su conjunto es altamente significativo. Se han eliminado variables como Max_BPM, Water_Intake, Fat_Percentage y Experience_Level, al no mejorar el ajuste del modelo. Las variables más influyentes son Age, Gender, Avg_BPM y Session_Duration, con un impacto directo en las calorías quemadas.
 
 método lasso
 
@@ -771,6 +762,7 @@ print(coeficientes)
 
 
 ```
+
 Ridge
 
 ```{r}
@@ -845,9 +837,6 @@ r2_elastic_net <- 1 - sum((y - y_pred_elastic_net)^2) / sum((y - mean(y))^2)
 cat("R² del modelo Elastic Net:", r2_elastic_net, "\n")
 
 ```
-``
-
-
 
 comparacion de los tres modelo 
 Elastic Net tiene un R² de 0.979 y un RMSE de 38.98. Este modelo muestra un buen ajuste a los datos, con el 97.9% de la variabilidad en las calorías quemadas. La combinación de penalizaciones de Ridge y Lasso le permite manejar bien tanto la multicolinealidad como realizar una selección de variables. Aunque su MSE es de 1519.821, este valor se encuentra dentro de un rango razonable.
@@ -857,5 +846,171 @@ Ridge, por su parte, tiene un R² de 0.9676 y un RMSE de 48.42, lo que indica qu
 Lasso es bastante similar al modelo Elastic Net, con un R² de 0.979 y un RMSE de 38.98. Al igual que Elastic Net, Lasso ha realizado una selección de variables, eliminando aquellas que no aportan significativamente a la predicción en nuestro caso Gender, Max_BPM, Workout_Type, Water_Intake, Experience_Level.
 
 Tras comparar los tres modelos decidimos que para estimar las calorías que se queman, creomos que el modelo Elastic Net es una gran opción porque une las ventajas de Lasso y Ridge. Siendo capaz de manejar la multicolinealidad y también selecciona variables, lo cual es muy útil cuando hay muchas variables que están relacionadas. Además, Elastic Net es adaptable, ya que permite modificar el parámetro alpha, lo que le ayuda a ajustarse mejor a las particularidades del conjunto de datos y a equilibrar el sesgo con la varianza.
-como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
 
+Como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
+
+# 5. Modelo de regresión lineal multiple.
+
+Viendo la selección de variables anterior, vamos a elegir las variables que se han seleccionado con el modelo forward y el modelo stepwise
+
+Primero de todo vamos a ver el modelo forward, una vez visto R2, ahora vamos a hacer el análisis de los residuos y la prueba de homocedasticidad.
+
+```{r}
+# Miramos el modelo
+summary(modelo_forward)
+
+# Obtener los residuos
+residuos <- resid(modelo_forward)
+valores_ajustados <- fitted(modelo_forward)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+# Graficar histograma de los residuos
+hist(residuos,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+# Graficar QQ-plot de los residuos
+qqnorm(residuos, main = "QQ-Plot de los Residuos")
+qqline(residuos, col = "red", lwd = 2) 
+
+shapiro_test <- shapiro.test(residuos)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+```
+
+Ahora vamos a hacer la prueba de homocedasticidad.
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_forward)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+```
+
+Como vemos, tenemos un p-valor que es por debajo de 0.05, por lo que tenemos un modelo que nos sugiere heterocedasticidad.
+
+Ahora, vamos a ver el modelo que sale con el modelo hecho con stepwise
+
+```{r}
+# Miramos el modelo
+summary(modelo_stepwise)
+
+# Obtener los residuos
+residuos <- resid(modelo_stepwise)
+valores_ajustados <- fitted(modelo_stepwise)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+# Graficar histograma de los residuos
+hist(residuos,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+# Graficar QQ-plot de los residuos
+qqnorm(residuos, main = "QQ-Plot de los Residuos")
+qqline(residuos, col = "red", lwd = 2) 
+
+shapiro_test <- shapiro.test(residuos)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+```
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_stepwise)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+```
+Al igual que el otro, vemos que tenemos un p-valor que es por debajo de 0.05, por lo que el modelo nos sugiere heterocedasticidad.
+
+# 6. Modelos no lienales y transformación de variables.
+
+Una vez vistos nuestros modelos de lineales simple y multiple, vamos a ver que transformación podemos hacer a nuestra variable objetivo de tal forma que podamos tener una mejor regresión.
+
+## 6.1 Modelo no lineal simple.
+
+En nuestro modelo lineal simple, hemos observado que en el modelo lineal simple hay mucha variablidad entre nuestras variables, podemos ver como al ver hacer la prueba de homocedasticidad vemos que nuestros datos tienen heterocedasticidad, para ello vamos a relizar el cambio a ambas variables por se parado y vamos a ver cual es la que mejor se adapta y nos da una mejor resolución. Primero vamos a ver la transformación de box-cox para ver cual es la transformación de variables que mejor se adapta a nuestro modelo
+
+```{r}
+# Ajuste de un modelo lineal simple
+modelo_bc <- lm(Calories_Burned ~ Session_Duration, train)
+
+# Aplicación de la transformación de Box-Cox
+boxcox(modelo_bc)
+```
+
+Viendo esto tenemos que el valor óptimo de lambda con un 95% de seguridad esta en torno al 0.5, dado que es distinto de 0, la mejor transformación de variables que podemos tener es el logaritmo de la variable Y, en nuestro caso son Calories_Burned. Antes de nada, vamos a ver como se ve gráficamente nuestra variable comparado con antes.
+
+```{r}
+train |> ggplot(aes(x = Session_Duration, y = log(Calories_Burned))) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Duración del Entrenamiento y Calorías Quemadas",
+       x = "Duración del Entrenamiento (horas)", y = "Calorías Quemadas") +
+  theme_minimal()
+```
+
+A simple vista, podemos ver que gráficamente ha mejorado bastante la variabilidad de nuestros datos, a continuación, vamos a crear el modelo aplicando el logaritmo a nuestra variable objetivo.
+
+```{r}
+model_log <- lm(log(Calories_Burned) ~ Session_Duration, train)
+summary(model_log)
+```
+
+viendo el modelo modificado, podemos ver como el Rcuadrado a aumentado un poco, hemos pasado de un 0.81 a un 0.82, ahora vamos a ver como se ven los residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado. Además de esto, podemos ver que el p-valor del intercepto ha mejorado significativamente, al principio su tenia un p-valor de 0.7 y ahora tenemos un p-valor menor a 2e-16.
+
+```{r}
+# Obtener los residuos
+residuos <- resid(model_log)
+valores_ajustados <- fitted(model_log)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+# Graficar histograma de los residuos
+hist(residuos,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+# Graficar QQ-plot de los residuos
+qqnorm(residuos, main = "QQ-Plot de los Residuos")
+qqline(residuos, col = "red", lwd = 2) 
+
+shapiro_test <- shapiro.test(residuos)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+```
+
+Viendo esto se ve que los residuos no llegan a ser del todo normales, sin embargo, su variabilidad no está tán variada, ahora vamos a hacer la prueba de homocedaticidad.
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(model_log)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+```
+Como podemos ver el p-valor a aumentado significativamente respecto al modelo original, pasando de un p-vamor muy pequeño a 0.8456, por lo que podemos decir que despues de esta transformación nuestras datos cumplen homocedasticidad diciendonos que la varianza de nuestros residuos presentan una variable constante.
+
+## 6.2 Modelo no lineal multiple
+
+Dado que hemos seleccionado uno de los modelos multiples, ahora vamos a ajustar los 
