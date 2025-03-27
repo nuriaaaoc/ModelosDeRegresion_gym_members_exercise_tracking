@@ -849,6 +849,31 @@ Tras comparar los tres modelos decidimos que para estimar las calorías que se q
 
 Como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
 
+
+```{r}
+# Crear una tabla comparativa 
+comparativa_modelos <- data.frame(
+  Modelo = c("Elastic Net", "Ridge", "Lasso", "Forward Selection", "Backward Selection"),
+  R2 = c(0.979, 0.9676, 0.979, 0.979, 0.9792),
+  RMSE = c(38.98, 48.42, 38.98, 39.12, 39.12),
+  MSE = c(1519.82, 2344.048, 1519.82, 1524.98, 1524.98),
+  Lambda = c(1.046946, NA, NA, NA, NA)
+)
+
+# Mostrar la tabla comparativa
+print(comparativa_modelos)
+
+```
+
+Tras comparar los distintos modelos de regresión, observamos que Elastic Net y Lasso ofrecenla mayor efectividad con un R² de 0.979 y un RMSE de 38.98, lo que sugiere una alta capacidad para explicar la variabilidad en las calorías quemadas con un error relativamente bajo. Ridge, por otro lado, presenta un R² menor (0.9676) y un RMSE mayor (48.42), lo que indica que es menos preciso en sus predicciones. Los modelos de selección de variables (Forward, Backward y Stepwise) también tienen un buen ajuste (R² = 0.979), pero al depender de la selección manual de variables y pueden no manejar bien la multicolinealidad.
+
+En conclusión, el modelo Elastic Net es la mejor opción, ya que combina las ventajas de Lasso (eliminación de variables irrelevantes) y Ridge (manejo de multicolinealidad), logrando un equilibrio óptimo entre ajuste y estabilidad. Su menor error y mayor precisión  lo que hace estimar las calorías quemadas de manera confiable.
+
+
+Al analizar los distintos métodos vemos que las variables más eliminadas son  Max_BPM, Water_Intake, Fat_Percentage y Experience_Leve lo que indica que variables que no nos dan una  información relevante. Session_Duration, Avg_BPM, Gender y Age aparecen constantemente, lo que nos confirma su importancia en la predicción. En particular, Session_Duration y Avg_BPM destacan como los factores más determinantes, ya que el tiempo de entrenamiento y la intensidad del esfuerzo medido en BPM tienen una relación directa con la quema de calorías.
+
+
+
 # 5. Modelo de regresión lineal multiple.
 
 Viendo la selección de variables anterior, vamos a elegir las variables que se han seleccionado con el modelo forward y el modelo stepwise
