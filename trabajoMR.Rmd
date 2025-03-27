@@ -720,9 +720,6 @@ El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la vari
 método lasso
 
 ```{r}
-# Instalar paquete si no está instalado
-if (!require(glmnet)) install.packages("glmnet", dependencies = TRUE)
-
 # Cargar librería
 library(glmnet)
 
