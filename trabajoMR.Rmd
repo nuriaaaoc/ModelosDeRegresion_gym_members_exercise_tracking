@@ -675,7 +675,7 @@ modelo_forward <- step(modelo_vacio,
 summary(modelo_forward)
 
 ```
-El modelo final tras usar el método fordward incluye las siguientes variables: Session_Duration, Avg_BPM, Gender, Age, Resting_BPM, y Workout_Type.
+El modelo final tras usar el método forward incluye las siguientes variables: Session_Duration, Avg_BPM, Gender, Age, Resting_BPM, y Workout_Type.
 
 Resultados:
 R²: 0.979 esto indica que el modelo explica aproximadamente el 97.9% de la variabilidad en las calorías quemadas.
@@ -723,6 +723,8 @@ summary(modelo_stepwise)
 
 
 ```
+El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la variabilidad en las calorías quemadas, lo cual podemos considerar un buen ajuste. El error residual estándar es de 39.12, por tanto las predicciones del modelo tienen un error promedio de 39.12 calorías. El estadístico F es 3523 con un p-valor muy bajo lo que indica que el modelo en su conjunto es altamente significativo. Se han eliminado variables como Max_BPM, Water_Intake, Fat_Percentage y Experience_Level, al no mejorar el ajuste del modelo. Las variables más influyentes son Age, Gender, Avg_BPM y Session_Duration, con un impacto directo en las calorías quemadas.
+
 
 método lasso
 
@@ -844,6 +846,8 @@ cat("R² del modelo Elastic Net:", r2_elastic_net, "\n")
 
 ```
 ``
+
+
 
 comparacion de los tres modelo 
 Elastic Net tiene un R² de 0.979 y un RMSE de 38.98. Este modelo muestra un buen ajuste a los datos, con el 97.9% de la variabilidad en las calorías quemadas. La combinación de penalizaciones de Ridge y Lasso le permite manejar bien tanto la multicolinealidad como realizar una selección de variables. Aunque su MSE es de 1519.821, este valor se encuentra dentro de un rango razonable.
