@@ -1141,7 +1141,7 @@ bptest_result <- bptest(residuos_multiple_bc)
 print(bptest_result)
 ```
 
-Despues de realizar varias transformaciones a distintas variables, como el logaritmo y la raiz a nuestra variable objetivo, así como el polinomio de orden 2 a Duracion de sesion y a porcentage graso, este el el modelo que mejor nos ha salido, en el como se puede ver, se ve que los residuos han mejorado, sin embargo, al hacer la prueba de homocedasticidad, vemos que incluso el p-valor ha disminuido. Ahora vamos a observar el modelo que se ha hecho mediante el metodo forward.
+Después de realizar varias transformaciones a distintas variables, como el logaritmo y la raíz a nuestra variable objetivo, así como el polinomio de orden 2 a Duración de sesión y a porcentage graso, este el el modelo que mejor nos ha salido, en el como se puede ver, se ve que los residuos han mejorado, sin embargo, al hacer la prueba de homocedasticidad, vemos que incluso el p-valor ha disminuido. Ahora vamos a observar el modelo que se ha hecho mediante el metodo forward.
 
 ```{r}
 summary(modelo_forward)
@@ -1155,7 +1155,7 @@ pairs(variables_seleccionadas)
 ```
 
 
-Vamos a realizar la raiz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
+Vamos a realizar la raíz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
 
 ```{r}
 modelo_forward_sqrt <- lm(sqrt(Calories_Burned) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM, data = train)
@@ -1206,7 +1206,7 @@ print(shapiro_test)
 bptest_result <- bptest(modelo_forward_sqrt)
 print(bptest_result)
 ```
-Como acabamos de comprobar, el hacer la raiz cuadrada el modelo del metodo forward, obtenemos más prediccion, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípocos a la izaquierda de la gráfica y que segun la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitandonos la heterocedasticidad que teniemos al hacer el modelo normal sin ninguna tranformación de variables.Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raiz. Primero buscamos el mejor lambda par nuestra transformación.
+Como acabamos de comprobar, el hacer la raiz cuadrada el modelo del metodo forward, obtenemos más prediccion, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípicos a la izquierda de la gráfica y que según la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitandonos la heterocedasticidad que teníamos al hacer el modelo normal sin ninguna tranformación de variables.Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raíz. Primero buscamos el mejor lambda par nuestra transformación.
 
 ```{r}
 bc_forward <- boxcox(modelo_forward, lambda = seq(-2, 2, 0.1))
@@ -1263,7 +1263,7 @@ bptest_result <- bptest(modelo_forward_bc)
 print(bptest_result)
 ```
 
-Al hacer el modelo podemos ver como el R2 del modelo incluso ha aumentado hasta 0.982, dandonos un modelo que nos predice aun más. Mirando los residuos, vemos que al igual que con la raiz tenemos valores atípicos en la parte izquierda de la gráfica y ql mirar el qqplot, el extremo inferior es lo que más se separa de la recta, mientreas que la perte dentral y el extremo de la derecha se ajustanperfectamente, dandonos a entender que se podría ajustar a una normal, esto se nos confirma cuando al hacer la prueba de Shapiro-Wilk nos da un p-valor inferior a 0.05, por lo que no podemos descartar la normalidad de los residuos. Para terminar, al hacer la prueba de homocedasticidad, tenemos que p-valor es 0.266 lo cual es mayor a 0.05, por lo que tambien nos hemos quitado la heterocedasticidad con esta transformación de varable. Si nos tenemos que  quedar con alguna, sería la seguda, ya que es más precisa a la hora de predecir nuestra variable objetivo.
+Al hacer el modelo podemos ver como el R2 del modelo incluso ha aumentado hasta 0.982, dándonos un modelo que nos predice aún más. Mirando los residuos, vemos que al igual que con la raíz tenemos valores atípicos en la parte izquierda de la gráfica y al mirar el qqplot, el extremo inferior es lo que más se separa de la recta, mientras que la parte central y el extremo de la derecha se ajustan perfectamente, dándonos a entender que se podría ajustar a una normal, esto se  confirma cuando al hacer la prueba de Shapiro-Wilk nos da un p-valor inferior a 0.05, por tanto no podemos descartar la normalidad de los residuos. Para terminar, al hacer la prueba de homocedasticidad, tenemos que el p-valor es 0.266 lo cual es mayor a 0.05, por lo que también nos hemos quitado la heterocedasticidad con esta transformación de varable. Si nos tenemos que  quedar con alguna, sería la segunda, ya que es más precisa a la hora de predecir nuestra variable objetivo.
 
 Para terminar, vamos a realizar un modelo no lineal con el modelo creado con el metodo stepwise.
 
@@ -1279,7 +1279,7 @@ pairs(variables_seleccionadas)
 ```
 
 
-Vamos a realizar la raiz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
+Vamos a realizar la raíz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
 
 ```{r}
 modelo_stepwise_sqrt <- lm(sqrt(Calories_Burned) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM + Weight + Height + BMI, data = train)
@@ -1331,7 +1331,7 @@ bptest_result <- bptest(modelo_stepwise_sqrt)
 print(bptest_result)
 ```
 
-Como acabamos de comprobar, el hacer la raiz cuadrada el modelo del metodo forward, obtenemos más prediccion, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípocos a la izaquierda de la gráfica y que segun la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitandonos la heterocedasticidad que teniemos al hacer el modelo normal sin ninguna tranformación de variables.Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raiz. Primero buscamos el mejor lambda par nuestra transformación.
+Como acabamos de comprobar, el hacer la raíz cuadrada el modelo del metodo forward, obtenemos más predicción, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípicos a la izquierda de la gráfica y que según la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitándonos la heterocedasticidad que teníamos al hacer el modelo normal sin ninguna tranformación de variables. Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raíz. Primero buscamos el mejor lambda par nuestra transformación.
 
 ```{r}
 bc_stepwise <- boxcox(modelo_stepwise, lambda = seq(-2, 2, 0.1))
@@ -1388,6 +1388,6 @@ bptest_result <- bptest(modelo_stepwise_bc)
 print(bptest_result)
 ```
 
-Teniendo ahora los modelos no lineales realizados con los distintos cambios de variables, podemos ver como con el modelo hecho con el método stepwise, al hacer la transformación de Box-Cox, vemos como el R2 del modelo aumenta hasta 0.983, lo que nos da el mayor ajuste de nuestra variable de todos los modelo, por otro lado, se ve como los residuos son más normales que en los otros dos modelos, además de eso el qqplot es bastante parecido al modelo anterior, y al hacer el test de Shapiro-Wilk, vemos como no podemos descartar la normalidad de los residuos. Por último vemos una mejora en el test de normalidad, sin embargo, comparado con el modelo con la transformación de la raiz, este tiene un p-valor menor, sin embargo es más preciso.
+Teniendo ahora los modelos no lineales realizados con los distintos cambios de variables, podemos ver como con el modelo hecho con el método stepwise, al realizarle la transformación de Box-Cox el R2 del modelo aumenta hasta 0.983, lo que nos da el mayor ajuste de nuestra variable de todos los modelo, por otro lado, se ve como los residuos son más normales que en los otros dos modelos, además de eso el qqplot es bastante similar al modelo anterior, y al hacer el test de Shapiro-Wilk, vemos como no podemos descartar la normalidad de los residuos. Por último vemos una mejora en el test de normalidad, sin embargo, comparado con el modelo con la transformación de la raiz, este tiene un p-valor menor, aunque es más preciso.
 
 # 7. Conclusiones.
