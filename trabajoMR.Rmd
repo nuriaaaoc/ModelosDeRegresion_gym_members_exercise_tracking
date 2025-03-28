@@ -1089,7 +1089,7 @@ lambda_optimo_multiple <- bc$x[which.max(bc$y)]
 
 ```{r}
 modelo_multiple_bc <- lm(((Calories_Burned^lambda_optimo_multiple - 1)/lambda_optimo_multiple) ~ Session_Duration + Fat_Percentage + Water_Intake + Experience_Level + Avg_BPM + Age, data = train)
-summary(modelo_multiple_log)
+summary(modelo_multiple_bc)
 ```
 
 
@@ -1137,7 +1137,7 @@ print(shapiro_test)
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
-bptest_result <- bptest(residuos_multiple_bc)
+bptest_result <- bptest(modelo_multiple_bc)
 print(bptest_result)
 ```
 
