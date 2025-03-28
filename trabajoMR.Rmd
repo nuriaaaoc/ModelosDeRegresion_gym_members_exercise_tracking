@@ -10,9 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # 0. Introducción
 
-El conjunto de datos contiene un análisis de patrines de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
+El conjunto de datos contiene un análisis de patrones de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
 
-Estos datos se han extraido de [kaggle](https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset). Segun la propia descripción de los datos,este conjunto de datos nos proporciona una descripción detallada de las turinad de ejercicio, los atributos físicos y las métricas de aptitud física de los miembros de gimnasios. En temas de salud es muy importante llevar un monitoreo de las cosas que hay que hacer para estar bien físicamente. El objetivo de este sistema es poder buscar patrones y evidencias de lo que tiene que hacer una persona para estar bien fisica y mentalmente. Este conjunto de dato nos da información sobre datos demográficos y niveles de experiencia, lo que permite un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias de salud. Además de esto no 
+Estos datos se han extraído de [kaggle](https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset). Según la propia descripción de los datos,este conjunto de datos nos proporciona una descripción detallada de las rutinas de ejercicio, los atributos físicos y las métricas de aptitud física de los miembros de gimnasios. En temas de salud es muy importante llevar un monitoreo de las cosas que hay que hacer para estar bien físicamente. El objetivo de este sistema es poder buscar patrones y evidencias de lo que tiene que hacer una persona para estar bien fisica y mentalmente. Este conjunto de dato nos da información sobre datos demográficos y niveles de experiencia, lo que permite un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias de salud. 
 
 Según la descripción oficial de los datos, las variables que conforman el conjunto de datos son:
 
@@ -106,7 +106,7 @@ Al ver esto podemos ver que estos datos son en su mayoría de tipo numérico o e
 sum(is.na(datos))
 ```
 
-Vemos que no tenemos ningun datos faltante o missing entre nuestros datos.
+Vemos que no tenemos ningún dato faltante o missing entre nuestros datos.
 
 ## Primer vistazo a los datos.
 ```{r}
@@ -147,7 +147,7 @@ Antes de nada vamos a ver información de nuestra variable objetivo importante
 ```{r}
 summary(train$Calories_Burned)
 ```
-Con esto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorias y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
+Con esto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorías y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
 
 Vamos a ver la forma de nuestra variable objetivo gráficamente.
 ```{r}
@@ -156,7 +156,7 @@ train |> ggplot(mapping = aes(x = Calories_Burned)) +
   theme_bw()
 ```
 
-Viendo este histograma se puede ver como las calorias quemadas se acerca a una distribución normal, viendo los datos de antes, se ve que este histograma si que tiene sentido. 
+Viendo este histograma se puede ver como las calorias quemadas se acerca a una distribución normal, viendo los datos de anteriores, comprobamos que este histograma si que tiene sentido. 
 
 
 ## Distribucion de Calories_burned por genero
@@ -185,7 +185,7 @@ train |> ggplot(aes(x = Session_Duration, y = Calories_Burned)) +
 ```
 Podemos ver que hay una tendencia clara entre el tiempo de entrenamiento y las calorías quemadas
 
-## Relación entre Calories_Burned y BMI
+## Relación entre Calories_Burned y avg_bpm
 ```{r}
 train |> ggplot(aes(x = Avg_BPM, y = Calories_Burned)) +
   geom_point(alpha = 0.5, color = "blue") +
@@ -195,7 +195,7 @@ train |> ggplot(aes(x = Avg_BPM, y = Calories_Burned)) +
   theme_minimal()
 
 ```
-En el gráfico observamos la relación entre el average BPM y las calorías quemadas. Se observa una ligera tendencia positiva, representada por la línea de regresión en rojo, lo que indica que a mayor average bpm, mayor es la cantidad de calorías quemadas. Aunque la dispersión de los puntos indica que existen variaciones significativas entre los datos, lo que sugiere que influyen otros factores como la duración de la sesión, el genero o el tipo de entrenamiento.
+En el gráfico observamos la relación entre el average BPM y las calorías quemadas. Se observa una ligera tendencia positiva, representada por la línea de regresión en rojo, lo que indica que a mayor average bpm, mayor es la cantidad de calorías quemadas. Aunque la dispersión de los puntos indica que existen variaciones significativas entre los datos, lo que sugiere que influyen otros factores como la duración de la sesión, el género o el tipo de entrenamiento.
 
 ## Impacto del Nivel de Hidratación en el Rendimiento
 
@@ -305,9 +305,9 @@ Existe una relación clara entre la hidratación y la cantidad de calorías quem
 
 
 # 3. Modelización estadística.
-Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorias que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorias quema durante el entrenamiento. 
+Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorías que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorías quema durante el entrenamiento. 
 
-Las variables que se involucran seria el tiempo de duración de las sesiones de entrenamiento (variable explicativa) y la cantidad de calorias que quema una persona (variable respuesta).
+Las variables que se involucran sería el tiempo de duración de las sesiones de entrenamiento (variable explicativa) y la cantidad de calorías que quema una persona (variable respuesta).
 
 Miramos los datos de la variable explicativa
 
@@ -324,7 +324,7 @@ Observamos los datos de esas dos variables.
 ```
 
 
-Viendo esta cabecera, se puede ver a simple vista que si que puede haber una realción entre la duración de el entrenamiento con las calorias que se queman, para verlo más claro, representamos ambas variables graficamente.
+Viendo esta cabecera, se puede ver a simple vista que si que puede haber una realción entre la duración de el entrenamiento con las calorías que se queman, para verlo más claro, representamos ambas variables graficamente.
 
 ```{r}
 train |>
@@ -332,7 +332,7 @@ train |>
   geom_point()
 ```
 
-Dado que tenemos una relación positiva entre estas dos variables, voy a proponer un modelso para relacionar estas dos variables., buscamos mediante el método de mínimos cuadrados hallar los valores de $\beta_0$ y $\beta_1$ para poder llegar a un modelo con la forma: $\text{Calorias} = \beta_0 + \beta_1 \text{(Tiempo de entrenamient0)} + \epsilon$.
+Dado que tenemos una relación positiva entre estas dos variables, vamos a proponer un modelo para relacionar estas dos variables. Buscamos mediante el método de mínimos cuadrados hallar los valores de $\beta_0$ y $\beta_1$ para poder llegar a un modelo con la forma: $\text{Calorias} = \beta_0 + \beta_1 \text{(Tiempo de entrenamient0)} + \epsilon$.
 
 ```{r}
 # Creamos el modelo lineal y lo analizamos
@@ -341,9 +341,9 @@ summary(model)
 ```
 observamos que el valor del intercepto es de 5,659 aunque midiendo el tiempo en horas no es muy relevante que con o horas entrenadas quemes 5,659
 
-la pendiente tiene unvalor de 714.1 es decir por cada hora extra a la sesión de entrenamiento se queman 714.1 calorías más en promedio
+la pendiente tiene un valor de 714.1 es decir por cada hora extra a la sesión de entrenamiento se queman 714.1 calorías más en promedio
 
-al tener un p value < 2.2e^-16 podemos afirmar que la duración es altamente significativo
+al tener un p value < 2.2e^-16 podemos afirmar que la duración es altamente significativa
 
 observamos que R^2 es 0.8114 un ajuste bastante bueno
 
@@ -362,7 +362,7 @@ train |>
   annotate("text", x = 500, y = 2.0, label = paste("y =", round(coef(model)[1], 2), "+", round(coef(model)[2], 2), "x"), color = "red")
 ```
 
-La linea nos muestra una relación alcista segun las calorias quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negarivo ya que $\beta_1$ es 721.79 
+La linea nos muestra una relación creciente según las calorías quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negativo ya que $\beta_1$ es 721.79 
 
 ## Correlación
 
@@ -387,7 +387,7 @@ covarianza <- round(cov(calorias, sesion), 3)
 print(paste("La covarianza entre la calorias quemadas por la sesion de entrenamiento es: ", covarianza))
 ```
 
-Con esta covarianza podemos observar que ambas variables aumentan juntas, además de que no es cercana a 0 por lo que entre estas variables hay una relación lineal entre las variables.
+Con esta covarianza podemos observar que ambas variables aumentan juntas, además de que no es cercana a 0 por lo que entre estas variables existe una relación lineal.
 
 ## Coeficiente de correlación de lineal.
 Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
@@ -397,10 +397,10 @@ correlacion_pearson <- cor(train$Session_Duration, train$Calories_Burned, use = 
 cat("El coeficiente de correlación de Pearson entre la duración de la sesión y las calorías quemadas es:", round(correlacion_pearson, 8), "\n")
 ```
 
-La correlación de Pearson nos confirma lo que habiamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y como es positivo, las variables aumentan a la par.
+La correlación de Pearson nos confirma lo que habíamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y a su vez al ser positivo, las variables aumentan a la par.
+
 ## Tabla ANOVA
-tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
-la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. El resto de factores no son influyentes en la quema de calorías
+
 ```{r}
 # Ajustar el modelo de regresión lineal
 modelo <- lm(Calories_Burned ~ Age + Gender  + Height+ Weight + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake + Workout_Frequency + Experience_Level + BMI , data = train)
@@ -434,7 +434,7 @@ plot(valores_ajustados, residuos,
 abline(h = 0, col = "red", lwd = 2)
 
 ```
-Podemos observar que los residuos se distribuyen de manera aleatoria alrededor del eje, sin mostrar patrones claros, poor lo que el supuesto de linealidad se cumple. 
+Podemos observar que los residuos se distribuyen de manera aleatoria alrededor del eje, sin mostrar patrones claros, por lo que el supuesto de linealidad se cumple. 
 
 
 
@@ -447,7 +447,7 @@ hist(residuos,
      col = "lightblue", border = "black")
 
 ```
-Podemos observar que nuestra distribución se acerca a una distribucion noral con un ligero desplazamiento a la izquierda. 
+Podemos observar que nuestra distribución se acerca a una distribucion normal con un ligero desplazamiento a la izquierda. 
 
 
 
@@ -461,7 +461,7 @@ qqnorm(residuos, main = "QQ-Plot de los Residuos")
 qqline(residuos, col = "red", lwd = 2) 
 
 ```
-podemos observar que los puntos se alinean con la linea roja diagonal, por lo que podemos deducir que siguen una distribucion normal y concuerda con lo esperado.
+podemos observar que los puntos se alinean con la linea roja diagonal, por lo que podemos deducir que siguen una distribución normal y concuerda con lo esperado.
 
 
 
@@ -629,7 +629,7 @@ coeficientes <- summary(modelo)$coefficients
 coeficientes
 
 ```
-gresión lineal múltiple indican que las variables como el peso, altura, género, edad y calorías quemadas tienen un impacto significativo sobre el BMI, lo que sugiere que estas son las variables más relevantes para predecir el índice de masa corporal. En cambio, otras variables como el nivel de experiencia, frecuencia de entrenamiento, porcentaje de grasa corporal y tipo de ejercicio no muestran una relación estadísticamente significativa en este contexto.
+Regresión lineal múltiple indican que las variables como el peso, altura, género, edad y calorías quemadas tienen un impacto significativo sobre el BMI, lo que sugiere que estas son las variables más relevantes para predecir el índice de masa corporal. En cambio, otras variables como el nivel de experiencia, frecuencia de entrenamiento, porcentaje de grasa corporal y tipo de ejercicio no muestran una relación estadísticamente significativa en este contexto.
 
 El R² alto (0.9851) y la baja desviación estándar de los residuos sugieren que el modelo tiene un buen ajuste, pero la falta de significancia de algunas variables podría implicar que estas tienen un efecto indirecto sobre el BMI o que se requieren transformaciones adicionales del modelo. Este análisis resalta la importancia de los factores físicos y metabólicos en la predicción del BMI, pero también sugiere que un análisis más detallado y ajustes en las variables podrían mejorar la precisión del modelo.
 
@@ -710,6 +710,11 @@ summary(modelo_backward)
 
 
 ```
+```
+El modelo final, después de aplicar el método backward, utiliza las siguientes variables:
+Age, Gender, Avg_BPM, Session_Duration ya que tienen coeficientes significativos con valores p menores a 0.05, lo que indica que estas variables tienen un impacto relevante sobre Calories_Burned.
+
+Se han eliminaron variables como Max_BPM, water_intake, fat_percentage,  workout_frecuency y experience_level debido a su baja contribución al modelo. El R² de 0.9792 indica que el modelo explica el 97.92% de la variabilidad en las calorías quemadas. El error estándar residual de 39.12 sugiere que el modelo tiene una variabilidad de aproximadamente 39.12 calorías en las predicciones.Estadística F de 3523 con un p-valor muy pequeño (menor a 2e-16), lo que indica que el modelo en su conjunto es altamente significativo. Aunque el modelo es preciso, variables como workout_type no son del todo significativas y podrían eliminarse para mejorar el modelo.
 
 Método Stepwise
 
@@ -727,8 +732,8 @@ summary(modelo_stepwise)
 
 
 ```
-
 El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la variabilidad en las calorías quemadas, lo cual podemos considerar un buen ajuste. El error residual estándar es de 39.12, por tanto las predicciones del modelo tienen un error promedio de 39.12 calorías. El estadístico F es 3523 con un p-valor muy bajo lo que indica que el modelo en su conjunto es altamente significativo. Se han eliminado variables como Max_BPM, Water_Intake, Fat_Percentage y Experience_Level, al no mejorar el ajuste del modelo. Las variables más influyentes son Age, Gender, Avg_BPM y Session_Duration, con un impacto directo en las calorías quemadas.
+
 
 método lasso
 
@@ -855,11 +860,9 @@ Ridge, por su parte, tiene un R² de 0.9676 y un RMSE de 48.42, lo que indica qu
 
 Lasso es bastante similar al modelo Elastic Net, con un R² de 0.979 y un RMSE de 38.98. Al igual que Elastic Net, Lasso ha realizado una selección de variables, eliminando aquellas que no aportan significativamente a la predicción en nuestro caso Gender, Max_BPM, Workout_Type, Water_Intake, Experience_Level.
 
-Tras comparar los tres modelos decidimos que para estimar las calorías que se queman, creomos que el modelo Elastic Net es una gran opción porque une las ventajas de Lasso y Ridge. Siendo capaz de manejar la multicolinealidad y también selecciona variables, lo cual es muy útil cuando hay muchas variables que están relacionadas. Además, Elastic Net es adaptable, ya que permite modificar el parámetro alpha, lo que le ayuda a ajustarse mejor a las particularidades del conjunto de datos y a equilibrar el sesgo con la varianza.
-
 Como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
 
-
+Tabla comparativa de todos los modelos 
 ```{r}
 # Crear una tabla comparativa 
 comparativa_modelos <- data.frame(
@@ -968,13 +971,13 @@ print(bptest_result)
 ```
 Al igual que el otro, vemos que tenemos un p-valor que es por debajo de 0.05, por lo que el modelo nos sugiere heterocedasticidad.
 
-# 6. Modelos no lienales y transformación de variables.
+# 6. Modelos no lineales y transformación de variables.
 
 Una vez vistos nuestros modelos de lineales simple y multiple, vamos a ver que transformación podemos hacer a nuestra variable objetivo de tal forma que podamos tener una mejor regresión.
 
 ## 6.1 Modelo no lineal simple.
 
-En nuestro modelo lineal simple, hemos observado que en el modelo lineal simple hay mucha variablidad entre nuestras variables, podemos ver como al ver hacer la prueba de homocedasticidad vemos que nuestros datos tienen heterocedasticidad, para ello vamos a relizar el cambio a ambas variables por se parado y vamos a ver cual es la que mejor se adapta y nos da una mejor resolución. Primero vamos a ver la transformación de box-cox para ver cual es la transformación de variables que mejor se adapta a nuestro modelo
+En nuestro modelo lineal simple hemos observado que hay mucha variablidad entre nuestras variables, podemos ver como al ver hacer la prueba de homocedasticidad vemos que nuestros datos tienen heterocedasticidad, para ello vamos a relizar el cambio a ambas variables por separado y vamos a ver cual es la que mejor se adapta y nos da una mejor resolución. Primero vamos a ver la transformación de box-cox para asi comprobar que transformación de variables es la que mejor se adapta a nuestro modelo
 
 ```{r}
 # Ajuste de un modelo lineal simple
@@ -1002,7 +1005,7 @@ model_log <- lm(log(Calories_Burned) ~ Session_Duration, train)
 summary(model_log)
 ```
 
-viendo el modelo modificado, podemos ver como el Rcuadrado a aumentado un poco, hemos pasado de un 0.81 a un 0.82, ahora vamos a ver como se ven los residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado. Además de esto, podemos ver que el p-valor del intercepto ha mejorado significativamente, al principio su tenia un p-valor de 0.7 y ahora tenemos un p-valor menor a 2e-16.
+viendo el modelo modificado, podemos ver como el Rcuadrado a aumentado un poco, hemos pasado de un 0.81 a un 0.82, ahora vamos a ver como se ven los residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado. Además de esto, podemos ver que el p-valor del intercepto ha mejorado significativamente, al principio tenía un p-valor de 0.7 y ahora tenemos un p-valor menor a 2e-16.
 
 ```{r}
 # Obtener los residuos
@@ -1032,7 +1035,7 @@ cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
 print(shapiro_test)
 ```
 
-Viendo esto se ve que los residuos no llegan a ser del todo normales, sin embargo, su variabilidad no está tán variada, ahora vamos a hacer la prueba de homocedaticidad.
+Viendo esto se ve que los residuos no llegan a ser del todo normales, sin embargo, su variabilidad no es tán variada. Ahora vamos a realizar la prueba de homocedasticidad.
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
@@ -1040,8 +1043,8 @@ bptest_result <- bptest(model_log)
 cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
 print(bptest_result)
 ```
-Como podemos ver el p-valor a aumentado significativamente respecto al modelo original, pasando de un p-vamor muy pequeño a 0.8456, por lo que podemos decir que despues de esta transformación nuestras datos cumplen homocedasticidad diciendonos que la varianza de nuestros residuos presentan una variable constante.
+Como podemos ver el p-valor ha aumentado significativamente respecto al modelo original, pasando de un p-valor muy pequeño a 0.8456, por lo que podemos decir que después de esta transformación nuestras datos cumplen homocedasticidad diciendonos que la varianza de nuestros residuos presentan una variable constante.
 
-## 6.2 Modelo no lineal multiple
+## 6.2 Modelo no lineal múltiple
 
 Dado que hemos seleccionado uno de los modelos multiples, ahora vamos a ajustar los 
