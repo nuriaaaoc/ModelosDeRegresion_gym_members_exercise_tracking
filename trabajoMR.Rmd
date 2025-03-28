@@ -1047,4 +1047,4 @@ Como podemos ver el p-valor ha aumentado significativamente respecto al modelo o
 
 ## 6.2 Modelo no lineal múltiple
 
-Dado que hemos seleccionado uno de los modelos multiples, ahora vamos a ajustar los 
+Dado que hemos seleccionado uno de los modelos múltiples, ahora vamos a ajustar los 
