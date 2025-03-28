@@ -2,12 +2,19 @@
 title: "gym_members"
 author: "Nuria Oviedo, Aitana Garcia y Marcos López"
 date: "2025-02-06"
-output: html_document
+output: 
+  html_document:
+    html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: 
+      smooth_scroll: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 # 0. Introducción
 
 El conjunto de datos contiene un análisis de patrones de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
@@ -69,6 +76,7 @@ library(corrplot)
 library(MASS) 
 library(tidyverse)
 library(minpack.lm)
+library(glmnet)
 ```
 
 
@@ -318,9 +326,9 @@ summary(train$Session_Duration)
 Podemos ver que las personas entrenan una media de 1.256 horas, lo que hace 1 hora y 15 minutos, además podemos ver que dentro de los datos registrados, el mínimo de horas que se ha almacenado es de 0.5 horas y el máximo es de 2 horas.
 
 Observamos los datos de esas dos variables.
-
 ```{r}
-
+variables_objetivo <- select_(train, "Calories_Burned", "Session_Duration")
+head(variables_objetivo, 5)
 ```
 
 
@@ -598,72 +606,6 @@ grafico_dfbetas
 ```
 El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca influencia en los coeficientes del modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, algunas observaciones superan este umbral, lo que indica que pueden estar afectando de manera significativa los coeficientes de regresión. Es importante revisar estos puntos para determinar si están influyendo de manera desproporcionada en el modelo y, si es necesario, considerar ajustes para mejorar su estabilidad.
 
-
-# Modelo de regresión lineal multiple.
-
-```{r}
-
-# Ajustar modelo de regresión lineal múltiple
-modelo <- lm(Calories_Burned ~ Age + Gender + Weight + Height + Max_BPM + 
-             Avg_BPM + Resting_BPM + Session_Duration + BMI + 
-             Workout_Type + Fat_Percentage + Water_Intake + 
-             Workout_Frequency + Experience_Level, data = train)
-
-# Resumen del modelo
-summary(modelo)
-
-```
-El modelo de regresión lineal múltiple presenta un **ajuste muy fuerte** con un \( R^2 \) de **0.9851**, lo que indica que el 98.51% de la variabilidad en el **BMI** puede explicarse por las variables independientes incluidas. Variables como **peso (p < 0.001)**, **altura (p < 0.001)**, **género (p < 0.001)**, **edad (p = 0.00215)** y **calorías quemadas (p = 0.01446)** son estadísticamente significativas, lo que sugiere que tienen un impacto importante en el BMI. En contraste, variables como **frecuencia de entrenamiento, nivel de experiencia y consumo de agua** no muestran una relación estadísticamente significativa con el BMI. Además, los residuos parecen estar bien distribuidos, lo que respalda la validez del modelo. Sin embargo, la relación negativa con la **duración de la sesión de ejercicio** y la no significancia de la **frecuencia de entrenamiento** pueden indicar la necesidad de revisar la influencia de estos factores en la predicción del BMI.
-
-
-###  Interpretación de los Resultados
-
-Los coeficientes estimados indican la relación entre cada variable independiente y el BMI:
-
-Variables con valores p < 0.05 tienen un impacto significativo.
-R² y R² ajustado indican cuánto del BMI puede explicarse por el modelo.
-
-```{r}
-# Extraer coeficientes y p-valores
-coeficientes <- summary(modelo)$coefficients
-coeficientes
-
-```
-Regresión lineal múltiple indican que las variables como el peso, altura, género, edad y calorías quemadas tienen un impacto significativo sobre el BMI, lo que sugiere que estas son las variables más relevantes para predecir el índice de masa corporal. En cambio, otras variables como el nivel de experiencia, frecuencia de entrenamiento, porcentaje de grasa corporal y tipo de ejercicio no muestran una relación estadísticamente significativa en este contexto.
-
-El R² alto (0.9851) y la baja desviación estándar de los residuos sugieren que el modelo tiene un buen ajuste, pero la falta de significancia de algunas variables podría implicar que estas tienen un efecto indirecto sobre el BMI o que se requieren transformaciones adicionales del modelo. Este análisis resalta la importancia de los factores físicos y metabólicos en la predicción del BMI, pero también sugiere que un análisis más detallado y ajustes en las variables podrían mejorar la precisión del modelo.
-
-
-## Diagnóstico del Modelo
-
-Analizamos los residuos y verificamos la validez de los supuestos del modelo.
-
-```{r}
-# Gráfico de residuos vs valores ajustados
-ggplot(data = train, aes(x = fitted(modelo), y = residuals(modelo))) +
-  geom_point() +
-  geom_hline(yintercept = 0, col = "red") +
-  labs(title = "Residuos vs Valores Ajustados", x = "Valores Ajustados", y = "Residuos")
-
-# Histograma de residuos para evaluar normalidad
-ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
-  geom_histogram(bins = 20, fill = "blue", alpha = 0.7) +
-  labs(title = "Distribución de los Residuos", x = "Residuos", y = "Frecuencia")
-# Gráfico de residuos vs valores ajustados
-ggplot(data = train, aes(x = fitted(modelo), y = residuals(modelo))) +
-  geom_point() +
-  geom_hline(yintercept = 0, col = "red") +
-  labs(title = "Residuos vs Valores Ajustados", x = "Valores Ajustados", y = "Residuos")
-
-# Histograma de residuos para evaluar normalidad
-ggplot(data.frame(residuales = residuals(modelo)), aes(x = residuales)) +
-  geom_histogram(bins = 20, fill = "blue", alpha = 0.7) +
-  labs(title = "Distribución de los Residuos", x = "Residuos", y = "Frecuencia")
-
-```
-El análisis de los residuos muestra que estos siguen una distribución aproximadamente normal, lo cual se confirma con el histograma que no presenta colas largas ni desplazamientos significativos. Esto sugiere que no hay grandes violaciones de los supuestos de normalidad, lo que respalda la validez del modelo. Además, el gráfico de residuos vs valores ajustados El gráfico de residuos vs valores ajustados muestra una forma que sugiere una ligera tendencia en los residuos, especialmente cerca de los valores de x=25 y y=0 (línea roja). Aunque la mayoría de los residuos están dispersos de manera aleatoria alrededor de la línea cero, esta leve concentración en una zona particular podría indicar la presencia de heterocedasticidad, es decir, que la varianza de los residuos no es constante en todo el rango de valores ajustados. Este patrón podría sugerir que el modelo no captura completamente ciertos aspectos de los datos en esos puntos específicos. A pesar de esto, la distribución general de los residuos es adecuada, lo que indica que el modelo es relativamente bueno, aunque se podrían considerar transformaciones o la inclusión de nuevas variables para mejorar su precisión en las áreas donde se observa esta ligera tendencia. 
-
-
 # 4. Seleccion de variables
 
 Método Forward
@@ -710,7 +652,7 @@ summary(modelo_backward)
 
 
 ```
-```
+
 El modelo final, después de aplicar el método backward, utiliza las siguientes variables:
 Age, Gender, Avg_BPM, Session_Duration ya que tienen coeficientes significativos con valores p menores a 0.05, lo que indica que estas variables tienen un impacto relevante sobre Calories_Burned.
 
@@ -738,9 +680,6 @@ El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la vari
 método lasso
 
 ```{r}
-# Cargar librería
-library(glmnet)
-
 train$Gender <- as.numeric(as.factor(train$Gender))
 train$Workout_Type <- as.numeric(as.factor(train$Workout_Type))
 
@@ -819,9 +758,6 @@ cat("R² del modelo Ridge:", r2_ridge, "\n")
 elastic_net
  
 ```{r}
-# Cargar la librería glmnet
-library(glmnet)
-
 # Preparar los datos
 X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])
 y <- train$Calories_Burned
@@ -863,6 +799,7 @@ Lasso es bastante similar al modelo Elastic Net, con un R² de 0.979 y un RMSE d
 Como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
 
 Tabla comparativa de todos los modelos 
+
 ```{r}
 # Crear una tabla comparativa 
 comparativa_modelos <- data.frame(
@@ -885,84 +822,165 @@ Al analizar los distintos métodos vemos que las variables más eliminadas son  
 
 # 5. Modelo de regresión lineal multiple.
 
-Viendo la selección de variables anterior, vamos a elegir las variables que se han seleccionado con el modelo forward y el modelo stepwise
-
-Primero de todo vamos a ver el modelo forward, una vez visto R2, ahora vamos a hacer el análisis de los residuos y la prueba de homocedasticidad.
+Tras haber visto la matriz de correlación de las variables y haber hecho la selección de variables, vamos a ver cual es el mejor modelo multiple para poder predecir nuestra varible, primero vamos a ver el modelo con la matriz de correlación.
 
 ```{r}
-# Miramos el modelo
-summary(modelo_forward)
+modelo_multiple <- lm(Calories_Burned ~ Session_Duration + Fat_Percentage + Water_Intake + Experience_Level + Avg_BPM + Age, data = train)
+summary(modelo_multiple)
+```
+Seleccionando las varibles que tiene más de |0.4| de relación con nuestra bariable objetivo, tenemos un modelo con un R2 multiple de 0.967 y uno ajustado de 0.9667, que está muy bien ya que nos dice que nuestro modelo es bastante bueno. Ahora vamos a ver como se ven los residuos del modelo y los vamos a nalizar.
 
+```{r}
 # Obtener los residuos
-residuos <- resid(modelo_forward)
-valores_ajustados <- fitted(modelo_forward)
+residuos_multiple <- resid(modelo_multiple)
+valores_ajustados <- fitted(modelo_multiple)
 
 # Graficar residuos vs valores ajustados
-plot(valores_ajustados, residuos,
+plot(valores_ajustados, residuos_multiple,
      main = "Residuos vs Valores Ajustados",
      xlab = "Valores Ajustados",
      ylab = "Residuos",
      pch = 19, col = "blue")
 abline(h = 0, col = "red", lwd = 2)
+```
 
+Al ver los residuos contra los varlores ajustados, podemos ver como no hay una varianza constante, ya que el empezar varía poco respecto a la parte derecha del gráfico.
+
+```{r}
 # Graficar histograma de los residuos
-hist(residuos,
+hist(residuos_multiple,
      main = "Histograma de Residuos",
      xlab = "Residuos",
      col = "lightblue", border = "black")
+```
 
-# Graficar QQ-plot de los residuos
-qqnorm(residuos, main = "QQ-Plot de los Residuos")
-qqline(residuos, col = "red", lwd = 2) 
+Viendo este gráfico a simple vista, podemos deduri que nos acercamos a una distribución normal.
 
-shapiro_test <- shapiro.test(residuos)
-cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+```{r}
+qqnorm(residuos_multiple, main = "QQ-Plot de los Residuos")
+qqline(residuos_multiple, col = "red", lwd = 2) 
+```
+
+Vemos con el qqplot que los residuos se acercan mucho a la linea roja, y que a sus extremos se van separando, por lo que podemos deducir que estos residuos, del modelo multiple, pueden seguir una distribución normal. Vamos a hacer la prueba de Shapiro-Wilk para ver si podemos rechazar que nuestros datos son normales.
+
+```{r}
+shapiro_test <- shapiro.test(residuos_multiple)
 print(shapiro_test)
 ```
 
-Ahora vamos a hacer la prueba de homocedasticidad.
+Como vemos, tenemos un p-valor de más de 0.05 lo que nos indica que podemos rechazar la hipótesis de normalidad de nuestros residuos. Ahora vamos a hacer la prueba de homocedasticidad.
+
+```{r}
+bptest_result <- bptest(modelo_multiple)
+print(bptest_result)
+```
+
+Vemos que tenemos un p-valor demasiado pequeño, lo nos indica heterocedasticidad en nuestro odelo, esto nos da la información de que no tenemos un modelo con una varianza constante, como hemos visto antes, afectando así a la precisión de los residuos. Para esto vamos a hacer unos ajustes de transformación de variables usando boxcox y el logaritmo a la variable objetivo para ver si esto mejora.
+
+Ahora vamos a analizar el modelo que se ha creado mediante la selección de variables. Par ello hemos elegido el modelo creado mediante el metodo forward y el modelo creado por el metodo stepwise. Primero vamos a ver el modelo del metodo forward.
+
+```{r}
+summary(modelo_forward)
+```
+
+Como ya hemos visto antes tenemos un R2 incluso mejor que el modelo multiple creado con la matriz de correlación, vemos que es practicamente 0.979 que es bastante precisión. Ahora vamos a ver los residuos del modelo y los vamos a analizar.
+
+```{r}
+# Obtener los residuos
+residuos_fordward <- resid(modelo_forward)
+valores_ajustados <- fitted(modelo_forward)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_fordward,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+Vemos como se distribullen de una manera aleatoria por la gráfica, además de eso, vemos como más que con una recta se podría aprocimar más con una parábola, lo que nos podría dar a entender que los residuos siguen una función polinómica de grado 2. Ahora vamos a ver que distribución siguen.
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_fordward,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+```
+
+Podemos ver que siguen una distribución bastante normal con media 0 y ligeramente desplazado hacia la izquierda.
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_fordward, main = "QQ-Plot de los Residuos")
+qqline(residuos_fordward, col = "red", lwd = 2) 
+
+```
+En el qqplot, vemos que en la parte central los residuos de asemejan mucho a la linea, sin embargo, también se ve que tirando a las colas estos residuos tienen mucha más variabilidad. Ahora, vamos a hacer la prueba de normalidad de los residuos.
+
+```{r}
+shapiro_test <- shapiro.test(residuos_fordward)
+print(shapiro_test)
+```
+
+Como vemos, tenemos un p-valor que está pro debajo de 0.05, lo nos indica que no podemos rechazar la hipótesis de que nuestros residuos son normales. Ahora vamos a hacer la prueba de homocedasticidad.
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
 bptest_result <- bptest(modelo_forward)
-cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
 print(bptest_result)
 ```
 
-Como vemos, tenemos un p-valor que es por debajo de 0.05, por lo que tenemos un modelo que nos sugiere heterocedasticidad.
-
-Ahora, vamos a ver el modelo que sale con el modelo hecho con stepwise
+Como vemos, tenemos un p-valor que es por debajo de 0.05, por lo que tenemos un modelo que nos sugiere heterocedasticidad. Despues de ver  el modelo multiple y el creado mediante el método de forward, ahora, vamos a ver el modelo creado por stepwise, primero de todo vamos a ver el modelo.
 
 ```{r}
-# Miramos el modelo
 summary(modelo_stepwise)
+```
+Vemos que este modelo es el más preciso a la hora de predecir las calorias que quema una persona, ya que tenemos un R2 de 0.9791, lo que nos dice que es bastante más preciso. Una vez visto el modelo, vamos a ver los residuos y si siguen una distribución normal.
 
+```{r}
 # Obtener los residuos
-residuos <- resid(modelo_stepwise)
+residuos_stepwise <- resid(modelo_stepwise)
 valores_ajustados <- fitted(modelo_stepwise)
 
 # Graficar residuos vs valores ajustados
-plot(valores_ajustados, residuos,
+plot(valores_ajustados, residuos_stepwise,
      main = "Residuos vs Valores Ajustados",
      xlab = "Valores Ajustados",
      ylab = "Residuos",
      pch = 19, col = "blue")
 abline(h = 0, col = "red", lwd = 2)
+```
 
+Estos residuos son bastante parecidos a los vistos con el modelo creado con forward, podemos ver como se distribullen de una forma aleatorioa y que más que una recta, lo que mejor ajusta a los residuos es un polinomio cuadrado, sin embargo, se ve que no hay demasiada variabilidad en el modelo. Viendo esto, vamos a ver si sigue una distribución normal o no.
+
+```{r}
 # Graficar histograma de los residuos
-hist(residuos,
+hist(residuos_stepwise,
      main = "Histograma de Residuos",
      xlab = "Residuos",
      col = "lightblue", border = "black")
+```
 
+Podemos ver como los residuos pueden seguir una distribución normal con media 0 y se ve que esta ligeramente desplazado hacia la izquierda. Vamos a ver el qqplot para ver como se ajustan los residuos a la recta.
+
+```{r}
 # Graficar QQ-plot de los residuos
-qqnorm(residuos, main = "QQ-Plot de los Residuos")
-qqline(residuos, col = "red", lwd = 2) 
+qqnorm(residuos_stepwise, main = "QQ-Plot de los Residuos")
+qqline(residuos_stepwise, col = "red", lwd = 2) 
 
-shapiro_test <- shapiro.test(residuos)
-cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+```
+
+Como con el modelo creado por el metodo fordward, los residuos en la parte central se ajustan bastante a la recta, sin embargo al irnos a los extremos, tenemos que los residuos se alejan bastante, por lo que podemos deducri que se cumple la normalidad en los residuos. No obstante, vamos a realizar la prueba de normalidad de Shapiro-Wilk para ver si las hipótesisi son ciertas.
+
+```{r}
+shapiro_test <- shapiro.test(residuos_stepwise)
 print(shapiro_test)
 ```
+
+Como podemos ver el p-valor es inferior a 0.05, lo nos indica que no se puede descartar la hipótesis de normalidad de nuestros residuos de este modelo. Ahora, vamos a ver la prueba de homocedasticidad del modelo.
+
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
 bptest_result <- bptest(modelo_stepwise)
@@ -971,13 +989,15 @@ print(bptest_result)
 ```
 Al igual que el otro, vemos que tenemos un p-valor que es por debajo de 0.05, por lo que el modelo nos sugiere heterocedasticidad.
 
-# 6. Modelos no lineales y transformación de variables.
+Habiendo visto estos tres modelos, hemos decidido quedarnos con el últipo, ya que es el modelo que es más preciso, además de tener unos residuos que siguien una distribución normal y porque, aunque la prueba de homocedasticidad está por debajo de 0.05, es la más alta de los tres modelos vistos anteriormente.
+
+# 6. Modelos no lienales y transformación de variables.
 
 Una vez vistos nuestros modelos de lineales simple y multiple, vamos a ver que transformación podemos hacer a nuestra variable objetivo de tal forma que podamos tener una mejor regresión.
 
 ## 6.1 Modelo no lineal simple.
 
-En nuestro modelo lineal simple hemos observado que hay mucha variablidad entre nuestras variables, podemos ver como al ver hacer la prueba de homocedasticidad vemos que nuestros datos tienen heterocedasticidad, para ello vamos a relizar el cambio a ambas variables por separado y vamos a ver cual es la que mejor se adapta y nos da una mejor resolución. Primero vamos a ver la transformación de box-cox para asi comprobar que transformación de variables es la que mejor se adapta a nuestro modelo
+En nuestro modelo lineal simple, hemos observado que en el modelo lineal simple hay mucha variablidad entre nuestras variables, podemos ver como al ver hacer la prueba de homocedasticidad vemos que nuestros datos tienen heterocedasticidad, para ello vamos a relizar el cambio a ambas variables por se parado y vamos a ver cual es la que mejor se adapta y nos da una mejor resolución. Primero vamos a ver la transformación de box-cox para ver cual es la transformación de variables que mejor se adapta a nuestro modelo
 
 ```{r}
 # Ajuste de un modelo lineal simple
@@ -1005,7 +1025,7 @@ model_log <- lm(log(Calories_Burned) ~ Session_Duration, train)
 summary(model_log)
 ```
 
-viendo el modelo modificado, podemos ver como el Rcuadrado a aumentado un poco, hemos pasado de un 0.81 a un 0.82, ahora vamos a ver como se ven los residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado. Además de esto, podemos ver que el p-valor del intercepto ha mejorado significativamente, al principio tenía un p-valor de 0.7 y ahora tenemos un p-valor menor a 2e-16.
+viendo el modelo modificado, podemos ver como el Rcuadrado a aumentado un poco, hemos pasado de un 0.81 a un 0.82, ahora vamos a ver como se ven los residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado. Además de esto, podemos ver que el p-valor del intercepto ha mejorado significativamente, al principio su tenia un p-valor de 0.7 y ahora tenemos un p-valor menor a 2e-16.
 
 ```{r}
 # Obtener los residuos
@@ -1035,16 +1055,339 @@ cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
 print(shapiro_test)
 ```
 
-Viendo esto se ve que los residuos no llegan a ser del todo normales, sin embargo, su variabilidad no es tán variada. Ahora vamos a realizar la prueba de homocedasticidad.
+Viendo esto se ve que los residuos no llegan a ser del todo normales, sin embargo, su variabilidad no está tán variada, ahora vamos a hacer la prueba de homocedaticidad.
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
 bptest_result <- bptest(model_log)
-cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
 print(bptest_result)
 ```
-Como podemos ver el p-valor ha aumentado significativamente respecto al modelo original, pasando de un p-valor muy pequeño a 0.8456, por lo que podemos decir que después de esta transformación nuestras datos cumplen homocedasticidad diciendonos que la varianza de nuestros residuos presentan una variable constante.
+Como podemos ver el p-valor a aumentado significativamente respecto al modelo original, pasando de un p-vamor muy pequeño a 0.8456, por lo que podemos decir que despues de esta transformación nuestras datos cumplen homocedasticidad diciendonos que la varianza de nuestros residuos presentan una variable constante.
 
-## 6.2 Modelo no lineal múltiple
+## 6.2 Modelo no lineal multiple
 
-Dado que hemos seleccionado uno de los modelos múltiples, ahora vamos a ajustar los 
+Despues de elegir un modelo, vamos a ver el modelo no lienal multiple con los tres modelos anteriores, para ver como cambian y con cual de esos tre nos quedaríamos. Primero vamos a empezar con el modelo multiple que hemos realizado con la matriz de correlación.
+
+```{r}
+summary(modelo_multiple)
+```
+
+Ahora vamos a ver las distribuciones de cada una para ver que transformaciones se pueden hacer para mejorar el modelo.
+
+```{r}
+variables_seleccionadas <- select_(train, "Calories_Burned", "Session_Duration", "Fat_Percentage", "Water_Intake", "Experience_Level", "Avg_BPM", "Age")
+pairs(variables_seleccionadas)
+```
+
+
+Este era el modelo que menos R2 tenía, sin embargo, hemos visto que los datos tienen bastante heterocedasticidad, por lo que vamos a aplicar la transformación logaritmica para nuestra variable objetivo.
+
+```{r}
+bc <- boxcox(modelo_multiple, lambda = seq(-2, 2, 0.1))
+lambda_optimo_multiple <- bc$x[which.max(bc$y)]
+```
+
+```{r}
+modelo_multiple_bc <- lm(((Calories_Burned^lambda_optimo_multiple - 1)/lambda_optimo_multiple) ~ Session_Duration + Fat_Percentage + Water_Intake + Experience_Level + Avg_BPM + Age, data = train)
+summary(modelo_multiple_log)
+```
+
+
+Como vemos el R2 de este modelo aplicando la transformación se ha reducido, sin embargo, lo que buscamos es un modelo bueno, por lo que vamos a ver como son nuestros residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado algo nuestros residuos y el modelo.
+
+```{r}
+# Obtener los residuos
+residuos_multiple_bc <- resid(modelo_multiple_bc)
+valores_ajustados <- fitted(modelo_multiple_bc)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_multiple_bc,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_multiple_bc,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_multiple_bc, main = "QQ-Plot de los Residuos")
+qqline(residuos_multiple_bc, col = "red", lwd = 2) 
+
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_multiple_bc)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(residuos_multiple_bc)
+print(bptest_result)
+```
+
+Despues de realizar varias transformaciones a distintas variables, como el logaritmo y la raiz a nuestra variable objetivo, así como el polinomio de orden 2 a Duracion de sesion y a porcentage graso, este el el modelo que mejor nos ha salido, en el como se puede ver, se ve que los residuos han mejorado, sin embargo, al hacer la prueba de homocedasticidad, vemos que incluso el p-valor ha disminuido. Ahora vamos a observar el modelo que se ha hecho mediante el metodo forward.
+
+```{r}
+summary(modelo_forward)
+```
+
+Primero de todo, vamos a ver la relación que se puede ver entre las variables.
+
+```{r}
+variables_seleccionadas <- select_(train, "Calories_Burned", "Session_Duration", "Avg_BPM", "Gender", "Age", "Resting_BPM")
+pairs(variables_seleccionadas)
+```
+
+
+Vamos a realizar la raiz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
+
+```{r}
+modelo_forward_sqrt <- lm(sqrt(Calories_Burned) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM, data = train)
+summary(modelo_forward_sqrt)
+```
+
+```{r}
+# Obtener los residuos
+residuos_forward_sqrt <- resid(modelo_forward_sqrt)
+valores_ajustados <- fitted(modelo_forward_sqrt)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_forward_sqrt,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_forward_sqrt,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_forward_sqrt, main = "QQ-Plot de los Residuos")
+qqline(residuos_forward_sqrt, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_forward_sqrt)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_forward_sqrt)
+print(bptest_result)
+```
+Como acabamos de comprobar, el hacer la raiz cuadrada el modelo del metodo forward, obtenemos más prediccion, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípocos a la izaquierda de la gráfica y que segun la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitandonos la heterocedasticidad que teniemos al hacer el modelo normal sin ninguna tranformación de variables.Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raiz. Primero buscamos el mejor lambda par nuestra transformación.
+
+```{r}
+bc_forward <- boxcox(modelo_forward, lambda = seq(-2, 2, 0.1))
+lambda_optimo_forward <- bc_forward$x[which.max(bc_forward$y)]
+```
+
+```{r}
+modelo_forward_bc <- lm(((Calories_Burned^lambda_optimo_forward - 1)/lambda_optimo_forward) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM, data = train)
+summary(modelo_forward_bc)
+```
+
+```{r}
+# Obtener los residuos
+residuos_forward_bc <- resid(modelo_forward_bc)
+valores_ajustados <- fitted(modelo_forward_bc)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_forward_bc,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_forward_bc,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_forward_bc, main = "QQ-Plot de los Residuos")
+qqline(residuos_forward_bc, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_forward_bc)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_forward_bc)
+print(bptest_result)
+```
+
+Al hacer el modelo podemos ver como el R2 del modelo incluso ha aumentado hasta 0.982, dandonos un modelo que nos predice aun más. Mirando los residuos, vemos que al igual que con la raiz tenemos valores atípicos en la parte izquierda de la gráfica y ql mirar el qqplot, el extremo inferior es lo que más se separa de la recta, mientreas que la perte dentral y el extremo de la derecha se ajustanperfectamente, dandonos a entender que se podría ajustar a una normal, esto se nos confirma cuando al hacer la prueba de Shapiro-Wilk nos da un p-valor inferior a 0.05, por lo que no podemos descartar la normalidad de los residuos. Para terminar, al hacer la prueba de homocedasticidad, tenemos que p-valor es 0.266 lo cual es mayor a 0.05, por lo que tambien nos hemos quitado la heterocedasticidad con esta transformación de varable. Si nos tenemos que  quedar con alguna, sería la seguda, ya que es más precisa a la hora de predecir nuestra variable objetivo.
+
+Para terminar, vamos a realizar un modelo no lineal con el modelo creado con el metodo stepwise.
+
+```{r}
+summary(modelo_stepwise)
+```
+
+Primero de todo, vamos a ver la relación que se puede ver entre las variables.
+
+```{r}
+variables_seleccionadas <- select_(train, "Calories_Burned", "Session_Duration", "Avg_BPM", "Gender", "Age", "Resting_BPM", "Weight", "Height", "BMI")
+pairs(variables_seleccionadas)
+```
+
+
+Vamos a realizar la raiz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
+
+```{r}
+modelo_stepwise_sqrt <- lm(sqrt(Calories_Burned) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM + Weight + Height + BMI, data = train)
+summary(modelo_stepwise_sqrt)
+```
+
+```{r}
+# Obtener los residuos
+residuos_stepwise_sqrt <- resid(modelo_stepwise_sqrt)
+valores_ajustados <- fitted(modelo_stepwise_sqrt)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_stepwise_sqrt,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_stepwise_sqrt,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_stepwise_sqrt, main = "QQ-Plot de los Residuos")
+qqline(residuos_stepwise_sqrt, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_stepwise_sqrt)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_stepwise_sqrt)
+print(bptest_result)
+```
+
+Como acabamos de comprobar, el hacer la raiz cuadrada el modelo del metodo forward, obtenemos más prediccion, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípocos a la izaquierda de la gráfica y que segun la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitandonos la heterocedasticidad que teniemos al hacer el modelo normal sin ninguna tranformación de variables.Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raiz. Primero buscamos el mejor lambda par nuestra transformación.
+
+```{r}
+bc_stepwise <- boxcox(modelo_stepwise, lambda = seq(-2, 2, 0.1))
+lambda_optimo_stepwise <- bc_stepwise$x[which.max(bc_stepwise$y)]
+```
+
+```{r}
+modelo_stepwise_bc <- lm(((Calories_Burned^lambda_optimo_stepwise - 1)/lambda_optimo_stepwise) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM + Weight + Height + BMI, data = train)
+summary(modelo_stepwise_bc)
+```
+
+```{r}
+# Obtener los residuos
+residuos_stepwise_bc <- resid(modelo_stepwise_bc)
+valores_ajustados <- fitted(modelo_stepwise_bc)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_stepwise_bc,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_stepwise_bc,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_stepwise_bc, main = "QQ-Plot de los Residuos")
+qqline(residuos_stepwise_bc, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_stepwise_bc)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_stepwise_bc)
+print(bptest_result)
+```
+
+Teniendo ahora los modelos no lineales realizados con los distintos cambios de variables, podemos ver como con el modelo hecho con el método stepwise, al hacer la transformación de Box-Cox, vemos como el R2 del modelo aumenta hasta 0.983, lo que nos da el mayor ajuste de nuestra variable de todos los modelo, por otro lado, se ve como los residuos son más normales que en los otros dos modelos, además de eso el qqplot es bastante parecido al modelo anterior, y al hacer el test de Shapiro-Wilk, vemos como no podemos descartar la normalidad de los residuos. Por último vemos una mejora en el test de normalidad, sin embargo, comparado con el modelo con la transformación de la raiz, este tiene un p-valor menor, sin embargo es más preciso.
+
+# 7. Conclusiones.
