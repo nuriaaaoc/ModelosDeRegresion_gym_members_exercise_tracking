@@ -15,11 +15,26 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# 0. Introducción
+# Introducción
 
-El conjunto de datos contiene un análisis de patrones de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
+El conjunto de datos contiene un análisis de patrines de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
+
+## Descripción del Conjunto de Datos
+
+El conjunto de datos analiza los patrones de actividad física y rendimiento en gimnasios, considerando distintos niveles de experiencia de los miembros.
+
 
 Estos datos se han extraído de [kaggle](https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset). Según la propia descripción de los datos,este conjunto de datos nos proporciona una descripción detallada de las rutinas de ejercicio, los atributos físicos y las métricas de aptitud física de los miembros de gimnasios. En temas de salud es muy importante llevar un monitoreo de las cosas que hay que hacer para estar bien físicamente. El objetivo de este sistema es poder buscar patrones y evidencias de lo que tiene que hacer una persona para estar bien fisica y mentalmente. Este conjunto de dato nos da información sobre datos demográficos y niveles de experiencia, lo que permite un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias de salud. 
+
+
+### Objetivo del Estudio
+
+En el ámbito de la salud, es crucial monitorear las actividades necesarias para mantener un estado físico y mental óptimo. Este análisis busca identificar patrones y evidencias que permitan mejorar el rendimiento deportivo y la salud general de los usuarios de gimnasios.
+
+El conjunto de datos incluye información sobre demografía y niveles de experiencia, lo que permite realizar un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias en la salud.
+
+
+## Descripción de las Variables
 
 Según la descripción oficial de los datos, las variables que conforman el conjunto de datos son:
 
@@ -42,23 +57,28 @@ Según la descripción oficial de los datos, las variables que conforman el conj
 Dado que es un problema de regresión, la variable objetivo (Cantidad de calorias quemadas durante la sesión de entrenamiento) es continua.
 
 
-## Brain storming
+## Brainstorming y Enfoque del Estudio
 
-1. Predicción de Calorías Quemadas
-Objetivo: Modelar la cantidad de calorías quemadas en función de las variables disponibles.
-Variables predictoras: Edad, Género, Peso, Altura, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Workout_Type, Fat_Percentage, Water_Intake, Workout_Frequency, Experience_Level, BMI.
+Se plantearon varias ideas de análisis para el dataset:
 
-2. Clasificación del Tipo de Entrenamiento a partir de Variables Fisiológicas
-Objetivo: Predecir el Workout_Type en función de variables como Max_BPM, Avg_BPM, Resting_BPM, Calories_Burned, Session_Duration y BMI.
+1. **Predicción de Calorías Quemadas:**
+   - Modelar la cantidad de calorías quemadas en función de variables fisiológicas y de entrenamiento.
+   - Variables predictoras: Edad, Género, Peso, Altura, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Workout_Type, Fat_Percentage, Water_Intake, Workout_Frequency, Experience_Level y BMI.
 
-3. Duracion de la sesión ideal 
-Variables predictoras: Edad, Género, Peso, Altura, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Workout_Type, Fat_Percentage, Workout_Frequency, Experience_Level, BMI.
+2. **Clasificación del Tipo de Entrenamiento:**
+   - Identificar el tipo de entrenamiento (Workout_Type) a partir de variables como Max_BPM, Avg_BPM, Resting_BPM, Calories_Burned, Session_Duration y BMI.
 
-4. Impacto del Nivel de Hidratación en el Rendimiento
-Objetivo: Analizar cómo el Water_Intake afecta variables como Max_BPM, Avg_BPM, Calories_Burned o Session_Duration.
+3. **Duración Ideal de la Sesión:**
+   - Determinar la duración óptima del entrenamiento según las características del usuario y su desempeño.
+
+4. **Impacto de la Hidratación en el Rendimiento:**
+   - Analizar cómo la ingesta de agua (Water_Intake) afecta variables como Max_BPM, Avg_BPM, Calories_Burned o Session_Duration.
+
+### Selección de Enfoque
+
+Para este estudio, nos centraremos en **la predicción de calorías quemadas** y **el impacto de la hidratación en el rendimiento físico**, ya que son dos aspectos clave para mejorar el entrenamiento y la salud.
 
 
-Decidimos trabajar en las ideas 1 y 4.
 
 ## Cargar paquetes necesarios
 
@@ -120,6 +140,10 @@ Vemos que no tenemos ningún dato faltante o missing entre nuestros datos.
 ```{r}
 head(datos, 5)
 ```
+
+
+## Partición del Dataset
+
 Realizamos la partición de nuestros datos.
 
 ```{r}
@@ -149,7 +173,16 @@ head(train)
 str(train)
 ```
 
-# 2. EDA
+# 2.**Análisis Exploratorio de Datos (EDA)**
+
+
+
+En esta sección, realizamos un análisis exploratorio de los datos para comprender mejor la distribución de las variables y las relaciones entre ellas. Nos enfocaremos en dos objetivos principales:  
+
+1. **Predicción de Calorías Quemadas**  
+2. **Impacto del Nivel de Hidratación en el Rendimiento**  
+
+## **Análisis de la Variable Objetivo: Calorías Quemadas** 
 
 Antes de nada vamos a ver información de nuestra variable objetivo importante
 ```{r}
@@ -311,9 +344,127 @@ Existe una relación clara entre la hidratación y la cantidad de calorías quem
 
 
 
+## Impacto del Nivel de Hidratación en el Rendimiento
+
+Uno de los objetivos principales es analizar cómo la hidratación influye en el rendimiento deportivo. Exploramos su relación con calorías quemadas, BPM y duración del entrenamiento.
+
+### Relación entre Water_Intake y Calories_Burned
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Calorías Quemadas",
+       x = "Consumo de Agua (litros)", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+Podemeos observar una tendencia positiva en la que mayor hidratación esté asociada con un mayor gasto calórico.
+
+
+### Relación entre Water_Intake y Max_BPM / Avg_BPM
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Max_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Máxima",
+       x = "Consumo de Agua (litros)", y = "Max BPM") +
+  theme_minimal()
+
+train |> ggplot(aes(x = Water_Intake, y = Avg_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Promedio",
+       x = "Consumo de Agua (litros)", y = "Avg BPM") +
+  theme_minimal()
+
+```
+
+Por lo que se observa en la imagen, la relación entre la ingesta de agua y la frecuencia cardíaca máxima (Max BPM) es prácticamente inexistente. La línea de tendencia roja es casi horizontal, lo que indica una correlación muy baja o nula entre estas variables.
+
+### Comparación del rendimiento cardíaco según niveles de hidratación
+
+```{r}
+train %>%
+  mutate(Water_Intake_Level = case_when(
+    Water_Intake < 2 ~ "Baja",
+    Water_Intake >= 2 & Water_Intake < 3 ~ "Media",
+    Water_Intake >= 3 ~ "Alta"
+  )) %>%
+  ggplot(aes(x = Water_Intake_Level, y = Avg_BPM, fill = Water_Intake_Level)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Frecuencia Cardíaca Promedio según Consumo de Agua",
+       x = "Nivel de Ingesta de Agua",
+       y = "Frecuencia Cardíaca Promedio (BPM)") +
+  theme_minimal() +
+  scale_fill_manual(values = c("red", "yellow", "green"))
+
+```
+
+```{r}
+cor.test(train$Water_Intake, train$Avg_BPM)
+
+```
+El resultado del test de correlación de Pearson indica que no hay una relación significativa entre el consumo de agua y la frecuencia cardíaca promedio (Avg_BPM):
+
+Coeficiente de correlación (r): 0.0067 → Casi nula, lo que sugiere que no hay una asociación lineal entre ambas variables.
+p-valor: 0.8608 → Muy alto, lo que significa que no podemos rechazar la hipótesis nula (es decir, no hay evidencia estadística de una relación).
+Intervalo de confianza al 95%: [-0.068, 0.081] → Incluye el 0, reforzando que la relación es débil o inexistente.
+
+
+```{r}
+ggplot(train, aes(x = Water_Intake, y = Session_Duration)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  labs(title = "Relación entre Ingesta de Agua y Duración del Entrenamiento",
+       x = "Consumo de Agua (litros)", 
+       y = "Duración del Entrenamiento (horas)") +
+  theme_minimal()
+
+```
+
+Observamos una pendiente positiva, indicando que las personas más hidratadas entrenan por más tiempo.
+
+### Correlación entre Consumo de Agua y Duración del Entrenamiento
+
+```{r}
+cor.test(train$Water_Intake, train$Session_Duration)
+
+```
+Relación entre Consumo de Agua y Duración del Entrenamiento
+
+Correlación: 0.246 (moderada)
+p-valor: 6.23e-11 (muy significativo)
+
+ Hay una relación positiva y significativa entre la ingesta de agua y la duración del entrenamiento. Esto sugiere que las personas que se hidratan más tienden a entrenar por más tiempo.
+
+
+### Correlación entre Consumo de Agua y Calorías Quemadas
+
+```{r}
+cor.test(train$Water_Intake, train$Calories_Burned)
+
+```
+
+Correlación: 0.330 (moderada)
+p-valor: < 2.2e-16 (extremadamente significativo)
+
+Existe una relación clara entre la hidratación y la cantidad de calorías quemadas. Esto indica que una mayor ingesta de agua podría estar asociada con un mayor gasto energético durante el ejercicio.
+
+
+
+
 
 # 3. Modelización estadística.
-Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorías que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorías quema durante el entrenamiento. 
+
+
+Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorias que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorias quema durante el entrenamiento al igual que estudiar la relacion del nivel de hidratación y su impacto en el entrenamiento. 
+
+
+## **Predicción de Calorías Quemadas**  
+
+Queremos analizar si existe una **relación positiva entre la duración del entrenamiento y las calorías quemadas**.  
 
 Las variables que se involucran sería el tiempo de duración de las sesiones de entrenamiento (variable explicativa) y la cantidad de calorías que quema una persona (variable respuesta).
 
@@ -323,9 +474,10 @@ Miramos los datos de la variable explicativa
 summary(train$Session_Duration)
 ```
 
-Podemos ver que las personas entrenan una media de 1.256 horas, lo que hace 1 hora y 15 minutos, además podemos ver que dentro de los datos registrados, el mínimo de horas que se ha almacenado es de 0.5 horas y el máximo es de 2 horas.
+Concluimos que las personas entrenan una media de 1.256 horas, lo que hace 1 hora y 15 minutos, además podemos ver que dentro de los datos registrados, el mínimo de horas que se ha almacenado es de 0.5 horas y el máximo es de 2 horas.
 
 Observamos los datos de esas dos variables.
+
 ```{r}
 variables_objetivo <- select_(train, "Calories_Burned", "Session_Duration")
 head(variables_objetivo, 5)
@@ -342,10 +494,13 @@ train |>
 
 Dado que tenemos una relación positiva entre estas dos variables, vamos a proponer un modelo para relacionar estas dos variables. Buscamos mediante el método de mínimos cuadrados hallar los valores de $\beta_0$ y $\beta_1$ para poder llegar a un modelo con la forma: $\text{Calorias} = \beta_0 + \beta_1 \text{(Tiempo de entrenamient0)} + \epsilon$.
 
+
+### Regresión Lineal Simple
+
 ```{r}
 # Creamos el modelo lineal y lo analizamos
-model <- lm(Calories_Burned ~ Session_Duration, data = train)
-summary(model)
+model1 <- lm(Calories_Burned ~ Session_Duration, data = train)
+summary(model1)
 ```
 observamos que el valor del intercepto es de 5,659 aunque midiendo el tiempo en horas no es muy relevante que con o horas entrenadas quemes 5,659
 
@@ -367,12 +522,12 @@ train |>
   labs(title = "Relación entre calorias quemadas y la duración de la sesion.",
        x = "Calorias quemadas.",
        y = "Duración de la sesion.") +
-  annotate("text", x = 500, y = 2.0, label = paste("y =", round(coef(model)[1], 2), "+", round(coef(model)[2], 2), "x"), color = "red")
+  annotate("text", x = 500, y = 2.0, label = paste("y =", round(coef(model1)[1], 2), "+", round(coef(model1)[2], 2), "x"), color = "red")
 ```
 
-La linea nos muestra una relación creciente según las calorías quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negativo ya que $\beta_1$ es 721.79 
+La linea nos muestra una relación alcista segun las calorias quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negarivo ya que $\beta_1$ es 721.79 
 
-## Correlación
+### Correlación
 
 Vamos a calcular y entender la correlación entre las variables de nuestro estudio.
 
@@ -385,7 +540,7 @@ m <- cor(train_num, use = "complete.obs")
 corrplot(m,type = "upper", method="number")
 ```
 
-## Covarianza
+### Covarianza
 ```{r}
 calorias <- train$Calories_Burned
 sesion <- train$Session_Duration
@@ -397,7 +552,7 @@ print(paste("La covarianza entre la calorias quemadas por la sesion de entrenami
 
 Con esta covarianza podemos observar que ambas variables aumentan juntas, además de que no es cercana a 0 por lo que entre estas variables existe una relación lineal.
 
-## Coeficiente de correlación de lineal.
+### Coeficiente de correlación de lineal.
 Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
 
 ```{r}
@@ -407,22 +562,188 @@ cat("El coeficiente de correlación de Pearson entre la duración de la sesión 
 
 La correlación de Pearson nos confirma lo que habíamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y a su vez al ser positivo, las variables aumentan a la par.
 
-## Tabla ANOVA
+
+### *ANOVA*: Factores que Influyen en las Calorías Quemadas
+
+tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
+la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. El resto de factores no son influyentes en la quema de calorías
 
 ```{r}
 # Ajustar el modelo de regresión lineal
-modelo <- lm(Calories_Burned ~ Age + Gender  + Height+ Weight + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake + Workout_Frequency + Experience_Level + BMI , data = train)
+model1 <- lm(Calories_Burned ~ Age + Gender  + Height+ Weight + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake + Workout_Frequency + Experience_Level + BMI , data = train)
 
 # Obtener la tabla ANOVA
-tabla_anova <- anova(modelo)
+tabla_anova <- anova(model1)
 cat("Tabla ANOVA:\n")
 #mostrar tabla anova
 print(tabla_anova)
 ```
 tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
-la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. 
+
+- Session_Duration
+- Avg_BPM
+- Gender
+- Age
+
+
+## **Impacto de la Hidratación en el Rendimiento**
+
+Ahora analizamos si la ingesta de agua afecta el rendimiento deportivo.
+
+
+```{r}
+modelo_hidratacion <- lm(Calories_Burned ~ Water_Intake, data = train)
+summary(modelo_hidratacion)
+
+```
+
+- *Pendiente positiva*, indicando que mayor hidratación se asocia con mayor gasto calórico.
+-  *R^2=0.109*: La hidratación explica el 10.9% de la variabilidad en las calorías quemadas.
+
+
+
+```{r}
+# Graficar la relación entre Consumo de Agua y Calorías Quemadas
+plot(train$Water_Intake, train$Calories_Burned,
+     main = "Impacto de la Hidratación en las Calorías Quemadas",
+     xlab = "Consumo de Agua (litros)",
+     ylab = "Calorías Quemadas",
+     pch = 19, col = "blue")
+
+# Añadir la recta de regresión
+abline(modelo_hidratacion, col = "red", lwd = 2)
+
+```
+
+Podemos observar una ligera tendencia ascendente que nos indica una  relacion positiva entre la hidratacion y la cantidad de calorias quemadas.
+
+
+### Regresión: Water_Intake y Session_Duration
+
+```{r}
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+
+# Ajustar el modelo de regresión para predecir Session_Duration en función de Water_Intake
+modelo2 <- lm(Session_Duration ~ Water_Intake, data = train)
+
+# Crear el gráfico de dispersión con la recta de regresión
+grafico <- ggplot(train, aes(x = Water_Intake, y = Session_Duration)) +
+  geom_point() +  # Puntos de datos
+  geom_smooth(method = "lm", col = "red") +  # Añadir la recta de regresión
+  labs(title = "Relación entre Consumo de Agua y Duración de la Sesión",
+       x = "Consumo de Agua (litros)",
+       y = "Duración de la Sesión (horas)") +
+  annotate("text", x = 3, y = 2.5, label = paste("y =", round(coef(modelo2)[1], 2), "+", round(coef(modelo2)[2], 2), "x"), color = "red")
+
+# Mostrar el gráfico
+print(grafico)
+
+```
+
+
+Podemos observar de nuevo una tendencia positiva entre estas dos variables.
+
+
+### 1. Cálculo de la Covarianza entre "Water Intake" y "Calories Burned"
+
+```{r}
+
+# Seleccionar las variables de interés
+water_intake <- train$Water_Intake
+calories_burned <- train$Calories_Burned
+
+# Calcular la covarianza
+covarianza <- round(cov(water_intake, calories_burned), 3)
+
+# Mostrar el resultado
+print(paste("La covarianza entre la ingesta de agua y las calorías quemadas es:", covarianza))
+```
+
+### 2. Cálculo de la Covarianza entre "Water Intake" y "Session Duration"
+```{r}
+# Seleccionar las variables de interés
+session_duration <- train$Session_Duration
+
+# Calcular la covarianza entre Water Intake y Session Duration
+covarianza_duracion <- round(cov(water_intake, session_duration), 3)
+
+# Mostrar el resultado
+print(paste("La covarianza entre la ingesta de agua y la duración de la sesión es:", covarianza_duracion))
+
+```
+
+
+Observamos que la covarianza entre la ingesta de agua y las calorías quemadas es 54.049, lo que indica una relación positiva moderada entre ambas variables. Esto sugiere que, a medida que aumenta la ingesta de agua, es probable que también aumenten las calorías quemadas durante una actividad física. En cambio, la covarianza entre la ingesta de agua y la duración de la sesión es muy baja, con un valor de 0.051, lo que implica que no existe una relación significativa entre la cantidad de agua consumida y el tiempo dedicado a la actividad física en este caso.
+
+Dado que el análisis entre ingesta de agua y calorías quemadas muestra una relación más destacada, decidimos continuar con este enfoque y dejar de lado la relación entre ingesta de agua y duración de la sesión.
+
+### Coeficiente correlacion Pearson
+
+```{r}
+# Calcular el coeficiente de correlación de Pearson
+coef_correlacion <- round(cor(datos$Water_Intake, datos$Calories_Burned), 3)
+
+# Mostrar el coeficiente de correlación
+cat("El coeficiente de correlación entre el consumo de agua y las calorías quemadas es:", coef_correlacion, "\n")
+
+```
+El coeficiente de correlación de 0.357 indica una relación positiva moderada entre el consumo de agua y las calorías quemadas. Esto sugiere que, en general, a mayor ingesta de agua, mayor es la cantidad de calorías quemadas.
+
+### Estimadores + error estandar
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo2 <- lm(calories_burned ~ water_intake, data = datos)
+
+# Obtener estimadores de los parámetros y errores estándar
+estimadores <- coef(summary(modelo))  # Incluye estimadores y errores estándar
+
+# Imprimir los resultados
+cat("Estimadores para los parámetros del modelo:\n")
+print(estimadores)
+
+```
+El intercepto (521.55) indica que, en promedio, si el consumo de agua es cero, se estiman alrededor de 521.55 calorías quemadas.
+
+El coeficiente de Water Intake (146.36) sugiere que por cada litro adicional de agua consumido, se espera un incremento promedio de 146.36 calorías quemadas.
+
+El valor p del coeficiente de water_intake es 7.36e-19, lo que indica una asociación estadísticamente significativa entre el consumo de agua y las calorías quemadas.
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo2 <- lm(calories_burned ~ water_intake, data = datos)
+
+# Obtener resumen del modelo
+summary(modelo2)
+
+```
+
+El análisis de regresión lineal entre el consumo de agua (Water Intake) y las calorías quemadas (Calories Burned) indica una relación positiva y estadísticamente significativa. El coeficiente de 146.36 sugiere que por cada litro adicional de agua consumido, se queman en promedio 146.36 calorías más.
+
+Sin embargo, el R² ajustado de 0.1077 indica que solo alrededor del 10.77% de la variabilidad en las calorías quemadas es explicada por el consumo de agua, lo que sugiere que otros factores no incluidos en el modelo influyen considerablemente en el gasto calórico. Aun así, la significancia estadística (p < 2e-16) confirma la relaccion entre estas dos variables.
+
+### ANOVA
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo2 <- lm(calories_burned ~ water_intake, data = datos)
+
+# Obtener y mostrar la tabla ANOVA
+tabla_anova <- anova(modelo2)
+cat("Tabla ANOVA:\n")
+print(tabla_anova)
+
+```
+La tabla ANOVA muestra que el consumo de agua tiene un impacto significativo en las calorías quemadas. El valor F de 83.444 y el valor p extremadamente bajo (menor que 0.001) indican que el modelo es altamente confiable y que el consumo de agua explica de manera importante las variaciones en las calorías quemadas. En resumen, se puede concluir que existe una relación estadísticamente significativa entre el agua que consumes y las calorías que quemas.
+
+
+
 
 ## 3.1 Análisis de Residuos
+
+## **Predicción de Calorías Quemadas**  
 
 Realizamos el análisis de residuos para evaluar el modelo ajustado.
 
@@ -430,8 +751,8 @@ Realizamos el análisis de residuos para evaluar el modelo ajustado.
 
 ```{r}
 # Obtener los residuos
-residuos <- resid(model)
-valores_ajustados <- fitted(model)
+residuos <- resid(model1)
+valores_ajustados <- fitted(model1)
 
 # Graficar residuos vs valores ajustados
 plot(valores_ajustados, residuos,
@@ -487,15 +808,73 @@ Observamos que el p-valor obtenido es menor que 0.05, por lo que rechazaríamos 
 
 
 
+## **Impacto de la Hidratación en el gasto de calorías.**
+
+
+### Residuos vs Valores Ajustados
+
+```{r}
+# Obtener los residuos
+residuos2 <- resid(modelo2)
+valores_ajustados <- fitted(modelo2)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados (Calorías Quemadas)",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+En esta gráfica podemos observar que los residuos se distribuyen de manera aleatoria alrededor del eje horizontal, sin mostrar patrones claros, lo que sugiere que el modelo es adecuado y el supuesto de linealidad se cumple.
+
+### Histograma Residuos
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos2,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+El histograma muestra que la distribución de los residuos se aproxima a una distribución normal, aunque con un ligero desplazamiento hacia la derecha Esto indica que los residuos están casi normalmente distribuidos, lo que es un buen indicio de que el modelo se ajusta bien a los datos.
+
+### QQ-plot Residuos
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos2, main = "QQ-Plot de los Residuos")
+qqline(residuos2, col = "red", lwd = 2) 
+
+```
+En el QQ-plot, podemos observar que los puntos se alinean con la línea roja diagonal, lo que sugiere que los residuos siguen una distribución normal. Esto concuerda con lo que esperamos para un buen modelo de regresión.
+
+
+### Prueba de Normalidad de los Residuos (Shapiro-Wilk)
+
+```{r}
+# Realizar la prueba de Shapiro-Wilk para normalidad de los residuos
+shapiro_test <- shapiro.test(residuos2)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+
+```
+La prueba de Shapiro-Wilk para los residuos muestra un valor de W cercano a 1, lo que sugiere que los residuos están bastante cerca de seguir una distribución normal. Sin embargo, el p-valor es menor a 0.05, lo que indica que debemos rechazar la hipótesis de que los residuos siguen una distribución normal perfecta. Esto significa que, aunque los residuos se aproximan a una distribución normal, hay algunas pequeñas desviaciones.
+
+
 
 
 ## 3.2 Diagnóstico del Modelo: Pruebas de Homocedasticidad y Leverage
+
+## **Predicción de Calorías Quemadas**
 
 ### Prueba de Homocedasticidad (Breusch-Pagan)
 
 ```{r}
 # Realizar la prueba de Breusch-Pagan para homocedasticidad
-bptest_result <- bptest(model)
+bptest_result <- bptest(model1)
 cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
 print(bptest_result)
 
@@ -509,7 +888,7 @@ Calculamos el leverage de las observaciones y graficamos las observaciones con l
 
 ```{r}
 # Calcular leverage
-leverage <- hatvalues(model)
+leverage <- hatvalues(model1)
 
 # Umbral para leverage alto
 n <- nrow(train)
@@ -543,7 +922,7 @@ El gráfico de leverage muestra que la mayoría de las observaciones tienen un l
 
 ```{r}
 # Calcular Distancia de Cook
-cooks_distance <- cooks.distance(model)
+cooks_distance <- cooks.distance(model1)
 
 # Gráfico de Distancia de Cook
 grafico_cooks_distance <- ggplot(data.frame(cooks_distance), aes(x = seq_along(cooks_distance), y = cooks_distance)) +
@@ -559,18 +938,109 @@ grafico_cooks_distance
 La distancia de Cook mide la influencia de cada observación sobre los coeficientes del modelo. Observaciones con una distancia de Cook alta (por encima del umbral) pueden ser altamente influyentes. En el gráfico, hay algunas observaciones con distancia de Cook alta, lo que indica que estas observaciones pueden estar afectando de manera desproporcionada el ajuste del modelo
 Podemos observar que la mayoría de las observaciones tienen una influencia baja en el modelo, ya que están acumuladas en la parte inferior, cerca de la línea roja. Sin embargo, hay algunas observaciones con una distancia de Cook alta, lo que indica que pueden estar afectando de manera significativa el ajuste del modelo. Estos puntos atípicos podrían estar influyendo de manera desproporcionada en los coeficientes, por lo que sería recomendable revisarlos para determinar si representan datos válidos o si es necesario aplicar ajustes para mejorar la estabilidad del modelo.
 
+
+## **Impacto del Nivel de Hidratación en el Gasto Calórico**
+
+### Prueba de Homocedasticidad (Breusch-Pagan)
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo2)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+
+```
+La prueba de Breusch-Pagan muestra un valor p de 7.191e-10, que es muy pequeño. Esto indica que existe heterocedasticidad en el modelo, es decir, los errores no tienen una varianza constante. En otras palabras, el comportamiento de las calorías quemadas no es igual para todos los niveles de consumo de agua, lo que puede influir en la precisión de las predicciones. 
+
+### Análisis de Leverage
+
+```{r}
+# Calcular leverage
+leverage <- hatvalues(modelo2)
+
+# Umbral para leverage alto
+n <- nrow(train)
+p <- length(coef(modelo2))  # Número de parámetros (incluyendo el intercepto)
+leverage_threshold <- 2 * p / n
+
+# Identificar observaciones con leverage alto
+leverage_high <- which(leverage > leverage_threshold)
+
+cat("\nUmbral para leverage alto:", leverage_threshold, "\n")
+cat("\nObservaciones con leverage alto (si las hay):\n")
+print(leverage_high)
+
+# Gráfico de leverage
+grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y = leverage)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = leverage_threshold, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Leverage de las Observaciones", x = "Índice de Observación", y = "Leverage")
+
+# Mostrar gráfico
+grafico_leverage
+# Calcular leverage
+leverage <- hatvalues(modelo2)
+
+# Umbral para leverage alto
+n <- nrow(train)
+p <- length(coef(modelo2))  # Número de parámetros (incluyendo el intercepto)
+leverage_threshold <- 2 * p / n
+
+# Identificar observaciones con leverage alto
+leverage_high <- which(leverage > leverage_threshold)
+
+cat("\nUmbral para leverage alto:", leverage_threshold, "\n")
+cat("\nObservaciones con leverage alto (si las hay):\n")
+print(leverage_high)
+
+# Gráfico de leverage
+grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y = leverage)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = leverage_threshold, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Leverage de las Observaciones", x = "Índice de Observación", y = "Leverage")
+
+# Mostrar gráfico
+grafico_leverage
+
+```
+
+El umbral para identificar observaciones con leverage alto es 0.0058. Las observaciones que superan este umbral tienen un gran impacto en el ajuste del modelo.
+
+
+### Análisis de la Distancia de Cook
+
+```{r}
+# Calcular Distancia de Cook
+cooks_distance <- cooks.distance(modelo2)
+
+# Gráfico de Distancia de Cook
+grafico_cooks_distance <- ggplot(data.frame(cooks_distance), aes(x = seq_along(cooks_distance), y = cooks_distance)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 4 / n, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Distancia de Cook", x = "Índice de Observación", y = "Distancia de Cook")
+
+# Mostrar gráfico
+grafico_cooks_distance
+
+```
+
+La distancia de Cook mide la influencia de cada observación sobre los coeficientes del modelo de calorías quemadas en función del consumo de agua. Observaciones con una distancia de Cook alta (por encima del umbral) pueden estar influyendo significativamente en los resultados. En el gráfico, la mayoría de las observaciones tienen una baja influencia, ya que están cerca de la línea roja. Sin embargo, algunas observaciones tienen una distancia de Cook más alta, lo que indica que podrían estar afectando de manera significativa el ajuste del modelo.
+
+
 ## 3.3 Análisis de DFFITS
+
+## **Predicción de Calorías Quemadas**
 
 mide el cambio en los valores ajustados cuando se omite una observación.
 
 ```{r}
 # Calcular DFFITS
-dffits_values <- dffits(model)
+dffits_values <- dffits(model1)
 
 # Gráfico de DFFITS
 grafico_dffits <- ggplot(data.frame(dffits_values), aes(x = seq_along(dffits_values), y = dffits_values)) +
   geom_point(color = "green") +
-  geom_hline(yintercept = c(2 * sqrt(length(coef(model)) / n)), col = "red", lwd = 2, lty = 2) +
+  geom_hline(yintercept = c(2 * sqrt(length(coef(model1)) / n)), col = "red", lwd = 2, lty = 2) +
   labs(title = "DFFITS", x = "Índice de Observación", y = "DFFITS")
 
 # Mostrar gráfico
@@ -580,15 +1050,34 @@ grafico_dffits
 
 El gráfico de DFFITS muestra que la mayoría de las observaciones tienen poca influencia en el modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, hay algunas observaciones que superan este umbral, lo que indica que pueden estar afectando significativamente los valores ajustados. Estas observaciones deberían revisarse para determinar si representan datos válidos o si están distorsionando el modelo, ya que podrían influir en la precisión de las predicciones
 
+##  **Impacto del Nivel de Hidratación en el Gasto Calórico**
+
+
+```{r}
+# Calcular DFFITS
+dffits_values <- dffits(modelo2)
+
+# Gráfico de DFFITS
+grafico_dffits <- ggplot(data.frame(dffits_values), aes(x = seq_along(dffits_values), y = dffits_values)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = c(2 * sqrt(length(coef(modelo2)) / n)), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFFITS", x = "Índice de Observación", y = "DFFITS")
+
+# Mostrar gráfico
+grafico_dffits
+
+```
+
 
 ## 3.4 Análisis de DFBETAS
 
 nos indican la influencia de cada observación sobre cada coeficiente de la regresión.
 
+##  **Predicción de Calorías Quemadas** 
 
 ```{r}
 # Calcular DFBETAS# Calcular DFBETAS
-dfbetas_values <- dfbetas(model)
+dfbetas_values <- dfbetas(model1)
 
 # Convertir dfbetas_values a un data.frame para poder usarlo en ggplot
 dfbetas_df <- as.data.frame(dfbetas_values)
@@ -606,9 +1095,36 @@ grafico_dfbetas
 ```
 El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca influencia en los coeficientes del modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, algunas observaciones superan este umbral, lo que indica que pueden estar afectando de manera significativa los coeficientes de regresión. Es importante revisar estos puntos para determinar si están influyendo de manera desproporcionada en el modelo y, si es necesario, considerar ajustes para mejorar su estabilidad.
 
+
+## **Impacto del Nivel de Hidratación en el Gasto Calórico**  
+
+
+```{r}
+# Calcular DFBETAS# Calcular DFBETAS
+dfbetas_values <- dfbetas(modelo2)
+
+# Convertir dfbetas_values a un data.frame para poder usarlo en ggplot
+dfbetas_df <- as.data.frame(dfbetas_values)
+
+# Graficar DFBETAS para el coeficiente de la pendiente (segunda columna si existe)
+grafico_dfbetas <- ggplot(dfbetas_df, aes(x = seq_along(dfbetas_df[,2]), y = dfbetas_df[,2])) + # Usamos el coeficiente de la pendiente
+  geom_point(color = "purple") +
+  geom_hline(yintercept = 2 / sqrt(n), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFBETAS para el Coeficiente de la Pendiente", x = "Índice de Observación", y = "DFBETAS")
+
+# Mostrar gráfico
+grafico_dfbetas
+
+
+```
+
+
+
 # 4. Seleccion de variables
 
-Método Forward
+##  **Predicción de Calorías Quemadas**
+
+### Método Forward
 
 ```{r}
 # Modelo vacío (sin variables)
@@ -637,7 +1153,7 @@ Age tiene un coeficiente negativo, lo que sugiere que, a medida que la edad aume
 Resting_BPM tiene un coeficiente positivo, indicando que a mayor BPM en reposo, mayor número de calorías quemadas.
 Workout_Type tiene un coeficiente negativo, pero no es muy diferente de cero (p > 0.05), lo que puede indicar que no es una variable determinante en este caso.
 
-Método Backward
+### Método Backward
 
 ```{r}
 # Ajustamos el modelo inicial con todas las variables
@@ -658,7 +1174,7 @@ Age, Gender, Avg_BPM, Session_Duration ya que tienen coeficientes significativos
 
 Se han eliminaron variables como Max_BPM, water_intake, fat_percentage,  workout_frecuency y experience_level debido a su baja contribución al modelo. El R² de 0.9792 indica que el modelo explica el 97.92% de la variabilidad en las calorías quemadas. El error estándar residual de 39.12 sugiere que el modelo tiene una variabilidad de aproximadamente 39.12 calorías en las predicciones.Estadística F de 3523 con un p-valor muy pequeño (menor a 2e-16), lo que indica que el modelo en su conjunto es altamente significativo. Aunque el modelo es preciso, variables como workout_type no son del todo significativas y podrían eliminarse para mejorar el modelo.
 
-Método Stepwise
+### Método Stepwise
 
 ```{r}
 
@@ -677,7 +1193,7 @@ summary(modelo_stepwise)
 El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la variabilidad en las calorías quemadas, lo cual podemos considerar un buen ajuste. El error residual estándar es de 39.12, por tanto las predicciones del modelo tienen un error promedio de 39.12 calorías. El estadístico F es 3523 con un p-valor muy bajo lo que indica que el modelo en su conjunto es altamente significativo. Se han eliminado variables como Max_BPM, Water_Intake, Fat_Percentage y Experience_Level, al no mejorar el ajuste del modelo. Las variables más influyentes son Age, Gender, Avg_BPM y Session_Duration, con un impacto directo en las calorías quemadas.
 
 
-método lasso
+### método lasso
 
 ```{r}
 train$Gender <- as.numeric(as.factor(train$Gender))
@@ -717,7 +1233,7 @@ print(coeficientes)
 
 ```
 
-Ridge
+### Ridge
 
 ```{r}
 # Preparar los datos
@@ -755,7 +1271,7 @@ r2_ridge <- 1 - sum((y - y_pred_ridge)^2) / sum((y - mean(y))^2)
 cat("R² del modelo Ridge:", r2_ridge, "\n")
 ```
 
-elastic_net
+### elastic_net
  
 ```{r}
 # Preparar los datos
@@ -789,7 +1305,8 @@ cat("R² del modelo Elastic Net:", r2_elastic_net, "\n")
 
 ```
 
-comparacion de los tres modelo 
+### comparacion de los tres modelo 
+
 Elastic Net tiene un R² de 0.979 y un RMSE de 38.98. Este modelo muestra un buen ajuste a los datos, con el 97.9% de la variabilidad en las calorías quemadas. La combinación de penalizaciones de Ridge y Lasso le permite manejar bien tanto la multicolinealidad como realizar una selección de variables. Aunque su MSE es de 1519.821, este valor se encuentra dentro de un rango razonable.
 
 Ridge, por su parte, tiene un R² de 0.9676 y un RMSE de 48.42, lo que indica que aunque el modelo también tiene un buen ajuste, no es tan preciso como Elastic Net en términos de predicción.Su MSE es de 2344.048, es decir, más alto en comparación con los otros dos modelos.
@@ -798,7 +1315,7 @@ Lasso es bastante similar al modelo Elastic Net, con un R² de 0.979 y un RMSE d
 
 Como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
 
-Tabla comparativa de todos los modelos 
+### Tabla comparativa de todos los modelos 
 
 ```{r}
 # Crear una tabla comparativa 
@@ -818,6 +1335,14 @@ print(comparativa_modelos)
 Tras comparar los distintos modelos de regresión, observamos que Elastic Net y Lasso ofrecenla mayor efectividad con un R² de 0.979 y un RMSE de 38.98, lo que sugiere una alta capacidad para explicar la variabilidad en las calorías quemadas con un error relativamente bajo. Ridge, por otro lado, presenta un R² menor (0.9676) y un RMSE mayor (48.42), lo que indica que es menos preciso en sus predicciones. Los modelos de selección de variables (Forward, Backward y Stepwise) también tienen un buen ajuste (R² = 0.979), pero al depender de la selección manual de variables pueden no manejar bien la multicolinealidad.
 
 Al analizar los distintos métodos vemos que las variables más eliminadas son  Max_BPM, Water_Intake, Fat_Percentage y Experience_Leve lo que indica que variables que no nos dan una  información relevante. Session_Duration, Avg_BPM, Gender y Age aparecen constantemente, lo que nos confirma su importancia en la predicción. En particular, Session_Duration y Avg_BPM destacan como los factores más determinantes, ya que el tiempo de entrenamiento y la intensidad del esfuerzo medido en BPM tienen una relación directa con la quema de calorías.
+
+
+
+### Mención sobre Water Intake y Predicción de Calorías Quemadas:
+
+Al analizar las variables involucradas en la predicción de Calories Burned, observamos que Water Intake no tiene una relación tan significativa con las calorías quemadas, en comparación con otras variables como Session Duration, Avg_BPM, y Age. Aunque la hidratación puede tener cierto impacto en el rendimiento físico, su influencia directa sobre el gasto calórico no parece ser tan pronunciada en este caso.
+
+Dado que Water Intake no mostró una relación clara y significativa con la variable objetivo, decidimos enfocarnos principalmente en aquellas variables que tienen un impacto más evidente en la predicción de las calorías quemadas. Esto nos permitió simplificar el modelo y mejorar la precisión de las predicciones al centrarnos en los factores más determinantes, como el tiempo de la sesión y la intensidad del esfuerzo (medido por Avg_BPM), entre otros.
 
 
 # 5. Modelo de regresión lineal multiple.
@@ -854,7 +1379,7 @@ hist(residuos_multiple,
      col = "lightblue", border = "black")
 ```
 
-Viendo este gráfico a simple vista, podemos deduri que nos acercamos a una distribución normal.
+Viendo este gráfico a simple vista, podemos deducir que nos acercamos a una distribución normal.
 
 ```{r}
 qqnorm(residuos_multiple, main = "QQ-Plot de los Residuos")
@@ -1392,4 +1917,5 @@ Teniendo ahora los modelos no lineales realizados con los distintos cambios de v
 
 # 7. Conclusiones.
 Para finalizar podemos concluir que la cantidad de calorías quemadas se ve influenciada principalmente por la duración del entrenamiento y la frecuencia cardíaca promedio (avg_bpm), lo que nos indica que en sesiones más largas e intensas las calorías quemadas serán mayores. También encontramos una pequeña diferencia entre los distintos géneros, donde los hombres queman ligeramente más calorías en promedio, sin embargo no de forma muy significativa. Además hemos podido comprobar que la hidratación si toma un papel importante en el rendimiento, dando mejores resultados en el entrenamiento, aunque tiene poca influencia directa con la quema de calorías.
+
 
