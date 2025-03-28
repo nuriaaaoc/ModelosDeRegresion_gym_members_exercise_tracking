@@ -185,6 +185,18 @@ train |> ggplot(aes(x = Session_Duration, y = Calories_Burned)) +
 ```
 Podemos ver que hay una tendencia clara entre el tiempo de entrenamiento y las calorías quemadas
 
+## Relación entre Calories_Burned y BMI
+```{r}
+train |> ggplot(aes(x = Avg_BPM, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre avg BPM y Calorías Quemadas",
+       x = "AVG_BPM", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+En el gráfico observamos la relación entre el average BPM y las calorías quemadas. Se observa una ligera tendencia positiva, representada por la línea de regresión en rojo, lo que indica que a mayor average bpm, mayor es la cantidad de calorías quemadas. Aunque la dispersión de los puntos indica que existen variaciones significativas entre los datos, lo que sugiere que influyen otros factores como la duración de la sesión, el genero o el tipo de entrenamiento.
+
 ## Impacto del Nivel de Hidratación en el Rendimiento
 
 ### Relación entre Water_Intake y Calories_Burned
@@ -399,7 +411,8 @@ cat("Tabla ANOVA:\n")
 #mostrar tabla anova
 print(tabla_anova)
 ```
-
+tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
+la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. 
 
 ## 3.1 Análisis de Residuos
 
