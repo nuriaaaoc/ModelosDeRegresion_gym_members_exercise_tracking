@@ -1919,3 +1919,121 @@ Teniendo ahora los modelos no lineales realizados con los distintos cambios de v
 Para finalizar podemos concluir que la cantidad de calorías quemadas se ve influenciada principalmente por la duración del entrenamiento y la frecuencia cardíaca promedio (avg_bpm), lo que nos indica que en sesiones más largas e intensas las calorías quemadas serán mayores. También encontramos una pequeña diferencia entre los distintos géneros, donde los hombres queman ligeramente más calorías en promedio, sin embargo no de forma muy significativa. Además hemos podido comprobar que la hidratación si toma un papel importante en el rendimiento, dando mejores resultados en el entrenamiento, aunque tiene poca influencia directa con la quema de calorías.
 
 
+#4 Modelos de regresión generalizada
+##aplicar regresión logística
+```{r}
+# Crear variable binaria (alto gasto calórico)
+train$type <- ifelse(train$Calories_Burned > 700, 1, 0)
+
+# Ajustar el modelo de regresión logística
+modelo_logistico <- glm(type ~ `Session_Duration` + BMI + Age, 
+                        data = train, 
+                        family = binomial)
+
+# Ver resumen del modelo
+summary(modelo_logistico)
+
+
+```
+El modelo de regresión logística ajustado busca predecir si un usuario quema más de 700 calorías durante una sesión de ejercicio en base a tres variables: duración de la sesión, índice de masa corporal (BMI) y edad. Los resultados nos dicen que la variable más indluyente es la duración de la sesión (Session_Duration), con un coeficiente positivo bastante alto (17.5) y un p-valor menor a 0.001, lo que apunta a una fuerte relación entre sesiones más largas y un mayor gasto calórico. La variable edad también resulta significativa a mayor edad, disminuye levemente la probabilidad de alcanzar un alto gasto calórico. Por otro lado, el BMI no presenta significancia estadística. El modelo tiene un buen ajuste en general, con un decrecimiento notable en la devianza y un AIC bajo (211.52), lo que advierte que los predictores elegidos mejoran considerablemente la capacidad explicativa respecto al modelo sin variables.
+
+
+```{r}
+# Predicciones de probabilidad
+predicciones_prob <- predict(modelo_logistico, type = "response")
+
+# Clasificación con un umbral de 0.5
+predicciones_clase <- ifelse(predicciones_prob > 0.5, "Yes", "No")
+
+# Crear matriz de confusión
+tabla_confusion <- table(Predicted = predicciones_clase, Actual = train$type)
+print(tabla_confusion)
+```
+comprobamos que el modelo acertó 122 veces al decir que era "No" cuando realmente era "No", y acertó 521 veces al decir que era "Sí" cuando realmente era "Sí". Pero también cometió 12 errores al decir "Sí" cuando era "No", y 29 errores al decir "No" cuando era "Sí".
+
+```{r}
+# Calcular precisión
+accuracy <- sum(diag(tabla_confusion)) / sum(tabla_confusion)
+print(paste("Precisión:", round(accuracy, 3)))
+```
+el modelo tiene una precisión de 0.94 la cual es bastante elevada
+
+```{r}
+# Cargar librería para curvas ROC
+library(pROC)
+# Curva ROC
+roc_obj <- roc(train$type, predicciones_prob)
+plot(roc_obj, main = "Curva ROC para Regresión Logística")
+```
+
+La curva ROC muestra que nuestro modelo de regresión logística funciona correctamente. Esta curva nos permite ver qué tan bien el modelo puede distinguir entre quienes queman más de 700 calorías y quienes no. En nuestro caso, la curva se acerca mucho a la esquina superior izquierda,lo que significa que el modelo acierta la mayoría de las veces. Además, el área bajo la curva (AUC) es de 0.94 aprox, lo que indica que el modelo tiene un buen nivel de precisión para predecir los resultados correctamente.
+
+
+```{r}
+# Calcular AUC
+auc_valor <- auc(roc_obj)
+print(paste("AUC:", round(auc_valor, 3)))
+```
+al tener un AUC de 0.98 es decir bastante cercano a 1 podemos decir que tiene una alta capacidad discriminativa, es decir, separa bien entre el no y el si.
+
+
+## regresion poisson
+```{r}
+# Ajustar el modelo de regresión de Poisson
+modelo_poisson <- glm(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM + Fat_Percentage, 
+                      data = train, 
+                      family = poisson)
+
+# Resumen del modelo
+summary(modelo_poisson)
+
+```
+
+Por cada minuto adicional de ejercicio (Session_Duration), las calorías quemadas aumentan en 2.25 veces. Por cada litro extra de agua (Water_Intake), las calorías suben en 1.05 veces. Cada latido adicional por minuto (Avg_BPM) aumenta las calorías en 1.007 veces, y un 1% más de grasa corporal (Fat_Percentage) eleva las calorías en 1.003 veces. 
+
+
+```{r}
+# Interpretación de coeficientes
+exp(coef(modelo_poisson))
+```
+
+```{r}
+# Calcular la relación entre el deviance y los grados de libertad
+deviance <- modelo_poisson$deviance
+grados_libertad <- modelo_poisson$df.residual
+sobredispersion <- deviance / grados_libertad
+
+print(paste("Índice de Sobredispersión:", round(sobredispersion, 2)))
+```
+como tenemos un valor muy elevado vamos a realizar una regresión binomial negativa 
+```{r}
+# Paso 1: Cargar el paquete necesario
+library(MASS)
+
+# Paso 2: Ajustar el modelo de regresión binomial negativa
+modelo_nb <- glm.nb(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM + Fat_Percentage, 
+                    data = train)
+
+# Paso 3: Ver el resumen del modelo binomial negativo
+summary(modelo_nb)
+
+# (Opcional) Paso 4: Comparar AIC del modelo de Poisson vs binomial negativa
+AIC(modelo_poisson, modelo_nb)
+
+```
+diagnóstico de residuos sobre el modelo binomial negativo
+```{r}
+# Gráfico de residuos deviance para evaluar el ajuste
+plot(residuals(modelo_nb, type = "deviance"), main = "Residuos Deviance", ylab = "Residuos", xlab = "Índice")
+abline(h = 0, col = "red")
+```
+no se observan patrones claros aunque si que hay muchos puntos alejados de la línea roja
+
+##modelo gamma
+```{r}
+# Ajuste del modelo Gamma
+modelo_gamma <- glm(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM + Fat_Percentage, family = Gamma(link = "log"), data = train)
+
+# Resumen del modelo
+summary(modelo_gamma)
+```
