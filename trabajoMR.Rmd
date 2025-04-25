@@ -2037,3 +2037,58 @@ modelo_gamma <- glm(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM 
 # Resumen del modelo
 summary(modelo_gamma)
 ```
+
+# Tema 5
+
+Dado que nuesro objetivo es modelar nuestra variable objetivo Calories_Burned en función de otras variable. Ahora vamos a hacer el modelo y vamos a ver que posibles cosas podemos ver. Primero de todo, vamos a ver el modelo.
+
+```{r}
+library(mgcv)
+
+modelo_gam <- gam(Calories_Burned ~ s(Age) + Gender + s(Avg_BPM) + s(Session_Duration), data = train, method = "REML")
+summary(modelo_gam)
+```
+
+En este análisis del modelo, hemos utilizado como predictores Age, Gender, Avg_BPM y Session_Duration. Como podemos ver, este modelo utiliza la familia gaussiana como función de enlace identidad, ya que la función objetivo es continua y aproximadamente simétrica, como hemos visto antes. Este modelo nos indica que ser hombre se asocia a un incremento promedio de 86.98 calorías en comparació con la mujer, además de que el efecto es bastante significativo, evidenciando su relevandia para explicar la variable objetivo.
+
+Por otro lado, las variables suavizadas, tenemos que la variable suavizada de Age, tiene un valor edf mayor a 1, lo que nos indica que puede sigerir patrones curvos o no lineales importantes. Sin embargo, las demás variables, tiene un edf practicamente 1, implicando un comportamiento practicamente lineal con la variable objetivo. Sin embargo, todas las variables suavizadas, son altamanete significativas, indicando que susu efectos contribuyen significativamente al modelo.
+
+A parte de las variables, hay otros valores bastante importantes y destacados que hay que resaltar, como el valor de 98.5% de la deviance explicada, lo que nos da a entender que este modelo es capaz de explicar casi toda la variabilidad observada. Por otro lado tenemos el valor -REML de 3376.4, lo que nos ayuda a poder comparar distintos modelo GAM.
+
+Despues de ver nuestro modelo, podemos ver que tenemos distintos valores de edf, el de age, como es mayor a 1, nos indica que una posible relación no lineal, sin embargo en los otros, podemos ver como el valor es practicamente 1 sugiriendonos una relacion linal con estas variables. Por otro lado, si vemos el p-valor de las variables suavizadas, nos damos cuenta de que es bastante pequeño, lo que no siguiere que la relación de cada variable con la variable dependiente es estadísticamente significativa. A continuación, vamos a graficar el modelo para ver los efectos suavizados.
+
+```{r}
+plot(modelo_gam, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Con estos gráficos, podemos resaltar más lo que hemos dicho anteriormente con las variable, tenemos que las variable Avg_BPM y Sessión_Duration, se aproximan a una relación lineal, mientras que Age, presenta distintas curvas en su representación. Ahora, vamos a personalizar el gráfico para mejorar la representación.
+
+
+```{r}
+plot(modelo_gam, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+
+A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam <- AIC(modelo_gam)
+print(aic_modelo_gam)
+```
+
+Este valor así no nos dice nada, solo nos lo va a decir una vez que comparemos el modelo con otros para ver cual nos predice mejor y poder valorar el que mejor nos selecciones. Ahora, vamos a ver los residuos de nuestro modelo.
+
+```{r}
+gam.check(modelo_gam)
+```
+
+Analizando los resíduos, podemo observar varias cosas, primero de todo que el modelo converge correctamente y es numéricamente estable, además de esto, la elección de k parace estable en todas las variables y podemos ver como las funciones suavizadas Avg_BPM y Sessión duration se comportan practicamente como relaciones lineale, por lo que ahora voy a ver como se ve el modelo depues de reemplazar esas variables suavizadas por las mismas sin suavizar.
+
+```{r}
+modelo_gam_lineal <- gam(Calories_Burned ~ s(Age) + Gender + Avg_BPM + Session_Duration, data = train, method = "REML")
+summary(modelo_gam_lineal)
+```
+
+```{r}
+gam.check(modelo_gam_lineal)
+```
