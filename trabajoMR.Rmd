@@ -2038,13 +2038,14 @@ modelo_gamma <- glm(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM 
 summary(modelo_gamma)
 ```
 
-# Tema 5
+
+# Otros modelos de regresión: Modelos Aditivos Generalizados (GAMs).
+
+## Modelo por relaciones.
 
 Dado que nuesro objetivo es modelar nuestra variable objetivo Calories_Burned en función de otras variable. Ahora vamos a hacer el modelo y vamos a ver que posibles cosas podemos ver. Primero de todo, vamos a ver el modelo.
 
 ```{r}
-library(mgcv)
-
 modelo_gam <- gam(Calories_Burned ~ s(Age) + Gender + s(Avg_BPM) + s(Session_Duration), data = train, method = "REML")
 summary(modelo_gam)
 ```
@@ -2061,7 +2062,7 @@ Despues de ver nuestro modelo, podemos ver que tenemos distintos valores de edf,
 plot(modelo_gam, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
 ```
 
-Con estos gráficos, podemos resaltar más lo que hemos dicho anteriormente con las variable, tenemos que las variable Avg_BPM y Sessión_Duration, se aproximan a una relación lineal, mientras que Age, presenta distintas curvas en su representación. Ahora, vamos a personalizar el gráfico para mejorar la representación.
+En los gráficos anteriores, podemos observar la función suavizda de las variables Age, Avg_BPM y Session_Duration obtenido del ajuste GAM usando splines cúbicos. Viendo los distintos gráficos para cada variable, podemos resaltar más lo que hemos dicho anteriormente con las variable, tenemos que las variable Avg_BPM y Sessión_Duration, se aproximan a una relación lineal, mientras que Age, presenta distintas curvas en su representación. Ahora, vamos a personalizar el gráfico para mejorar la representación. Ahora vamos a ver como se ven con los residuos.
 
 
 ```{r}
@@ -2076,19 +2077,75 @@ aic_modelo_gam <- AIC(modelo_gam)
 print(aic_modelo_gam)
 ```
 
-Este valor así no nos dice nada, solo nos lo va a decir una vez que comparemos el modelo con otros para ver cual nos predice mejor y poder valorar el que mejor nos selecciones. Ahora, vamos a ver los residuos de nuestro modelo.
-
-```{r}
-gam.check(modelo_gam)
-```
-
-Analizando los resíduos, podemo observar varias cosas, primero de todo que el modelo converge correctamente y es numéricamente estable, además de esto, la elección de k parace estable en todas las variables y podemos ver como las funciones suavizadas Avg_BPM y Sessión duration se comportan practicamente como relaciones lineale, por lo que ahora voy a ver como se ve el modelo depues de reemplazar esas variables suavizadas por las mismas sin suavizar.
+Este valor así no nos dice nada, solo nos lo va a decir una vez que comparemos el modelo con otros para ver cual nos predice mejor y poder valorar el que mejor nos selecciones. Ahora, vamos a ver los residuos de nuestro modelo. Por otro lado, como hemos visto antes, las variables de Avg_BPM y Session_Duration, tienen un valor edf muy cercano a 1, por lo que como se pueden considerar lineales, vamos a hacer otro modelo con esos valores sin suavizar para mejorar la interpretabilidad del modelo.
 
 ```{r}
 modelo_gam_lineal <- gam(Calories_Burned ~ s(Age) + Gender + Avg_BPM + Session_Duration, data = train, method = "REML")
 summary(modelo_gam_lineal)
 ```
 
+Comparando con el modelo anterior, vemos varias cosas, la primera de todoas es que el R-sq (adj) y la Deviance explained no ha cambiado, por lo que si consideramos linealidad entre esas variables no pasa nada. Por otro lado, el valor de -REML, a aumentado un poco, pasando de tener un valor de 3376.4 a 3378, esta diferencia no es muy grande indicando que ambos modelos son bastante válidos estadísticamente. Por lo que de los dos, vamos a seleccionar este, por su simplicidad y explicabilidad. Ahora vamos a ver como se ve gráficamente.
+
 ```{r}
+plot(modelo_gam_lineal, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Despues de hacer el modelo con solamente la variable Age suavizada, obtenemos el gráfico enterior, podemos observar que la relación entre la edad y las calorias quemadas no es lineal. A medida que la edad aumenta desde los 20 hasta los 40 años, la función suavizada presenta pequeñas ondulaciones, indicando variaciones en el efecto de la edad, pero después de los 40 años se aprecia un descenso muy marcado en la respuesta, estabilizándose posteriormente. Esto sugiere que alrededor de los 40 años hay un cambio importante en cómo la edad influye en las calorías quemadas. Además, las líneas de puntos representan los intervalos de confianza, mostrando que la estimación es bastante precisa en la mayor parte del rango de edades. Ahora vamos a observar el mismo gráfico pero con los residuos de la variable.
+
+```{r}
+plot(modelo_gam_lineal, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+Como podemos ver los residuos se ajustan bastante bien a la curva, además de esto podemos ver que hay una concentración en torna al 40 que pasados los 40 años descience a -50. Ajustando mejor el modelo, vamos a ver si el valor de AIC es mejor que el anterior
+
+```{r}
+aic_modelo_gam_lin <- AIC(modelo_gam_lineal)
+print(aic_modelo_gam_lin)
+```
+
+Comparando este valor con el anterior, podemos observar como ha mejorado, no mucho, pero algo mejor es. Despues de esto, vamos a analizar los residuos del modelo y ver si se podría ajustar bien o no.
+
+```{r}
+par(mfrow = c(2, 2))
 gam.check(modelo_gam_lineal)
 ```
+
+Primero tenemos el gráfico QQ-plot, el cual nos está comparando los residuos deviance con los varlores teóricos de una distribución normal. La mayoría de los puntos siguen la línea recta, lo que indica que los residuos se distribuyen aproximadamente de forma normal, aunque hay una pequeña desviación en los extremos, típica en muchos modelos.
+
+El segundo gráfico es el de residuos frente a las predicciones lineales, el cuan nos muestra que los residuos se distribuyen de forma relativamente aleatoria alrededor de cero, aunque parece haber una leve forma de “curva”, una ligera heterocedasticidad, lo cual podría deberse a alguna relación no perfectamente modelada, pero no es preocupante en exceso dado el patrón general.
+
+El tercer gráfico es el histograma de los residuos, el cual podemos ver que presenta una forma aproximadamente simétrica, centrada en cero, reforzando la idea principal de que los residuos son razonablemente normales.
+
+Por último, el cuarto gráfico es la respuesta frente a valores ajustados, en el cual se puede apreciar una relación bastante lineal y ajustado, sugiriendo que el modelo percibe bien los valores de la calorias que se queman.
+
+El proceso de ajuste del modelo utilizando el método REML y el optimizador "outer newton" ha sido exitoso, alcanzando la convergencia en tan solo cinco iteraciones, lo cual indica una optimización eficiente y sin dificultades. El rango de gradientes cercano a cero sugiere que se ha llegado a un óptimo real, mientras que la positividad del Hessiano y el rango razonable de los valores propios confirman la estabilidad numérica del ajuste. Además, el hecho de que el rango del modelo sea completo, sin pérdida de parámetros, respalda la correcta especificación del modelo. En cuanto al control del número de bases para el suavizado de la variable Age, los resultados muestran que el número de bases seleccionado ha sido adecuado, dado que el índice k es cercano a 1 y el p-valor es alto, no existiendo evidencia que sugiera la necesidad de incrementar la complejidad del suavizado. En conjunto, esta información respalda que el ajuste del modelo ha sido técnicamente correcto, estable y adecuado para representar las relaciones en los datos.
+
+Viendo que el modelo que solo suaviza la variable Age nos da más ventajas, ahora vamos a ver que modelo no da mejores resultados, el primero es el que ya hemos hecho con REML, pero el segundo utiliza Cross-Validation para encontrar el número óptimo de k para que el modelo se ajuste mejor a los dato.
+
+```{r}
+summary(modelo_gam_lineal)
+```
+```{r}
+modelo_gam_cv <- gam(Calories_Burned ~ s(Age) + Gender + Avg_BPM + Session_Duration, data = train, method = "GCV.Cp")
+summary(modelo_gam_cv)
+```
+ 
+Comparando ambos modelos podemos ver lo siguiente: por un lado, los valores del intercepto y de los coeficientes asociados a Gender, Avg_BPM y Session_Duration son prácticamente iguales en ambos casos. Además, todas estas variables son estadísticamente significativas, ya que presentan p-valores extremadamente bajos, lo que indica que tienen un impacto importante sobre las calorías quemadas. El hecho de que estos efectos sean lineales en ambos modelos y tan similares en magnitud y significación sugiere que su relación con la variable respuesta es estable y bien capturada sin necesidad de suavizarlas.
+
+En cuanto a los efectos suavizados, en ambos modelos únicamente la variable Age ha sido modelada de forma no lineal mediante una función suavizada (s(Age)). Su grado de complejidad (expresado mediante el valor de edf) es similar en ambos casos: 8.466 con el método REML y 8.714 con GCV.Cp. Esto indica que la relación entre Age y Calories_Burned es no lineal y presenta un patrón similar en ambos modelos, independientemente del método de estimación del suavizado.
+
+Además, el valor de R-squared ajustado y la desviación explicada son idénticos (98.5%) en ambos modelos, lo cual indica que el ajuste global es excelente en ambos casos. La ligera diferencia en el valor de edf sugiere que el modelo ajustado mediante GCV ha permitido un poco más de flexibilidad en la relación no lineal de la edad, aunque no parece haber un sobreajuste evidente.
+
+Dado que el objetivo de este trabajo es predecir las calorías quemadas, será interesante comparar gráficamente la forma del suavizado de la edad en ambos modelos y comprobar si esa diferencia en edf aporta alguna mejora en la capacidad predictiva o simplemente refleja una mayor complejidad sin ganancia sustancial.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelo_gam_lineal, main = "Ajuste GAM con REML con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_cv, main = "Ajuste GAM con GCV.Cp con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_lineal, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con REML")
+plot(modelo_gam_cv, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con GCV.Cp")
+```
+
+Con esto podemos ver como se comporta la variable Age en los distinto modelos, la primera columna con el metodo REML y la segunda con GCV.Cp, como poemos apreciar no hay demasiada diferencia entre ambos ráficos, la parte del ajuste se ve que cuando llega a 40 hay una bajada drástica, y vemos que la varianza en cada tramo es prácticamente la misma. Por otro lado, tenemos los residuos que al igual que con los gráficos de arriba, pasa lo msimo, no se aprecian bastantes diferencias entre ambos. Por lo que podemos concluir que en ambos modelos la diferencia en edf no aporta alguna mejorar en la capacidad predctiva.
+
+Viendo esto, hemos dedicidido quedarnos con el modelo hecho por GCV.Cp ya que el valor edf de la variable Age es ligeramente superior permitiendo un poco más de flexibilidad el la relación no lineal que hay entre las variables Calories_Burned y Age, además de esto no parece haber sobreajuste evidente en la variable Age.
