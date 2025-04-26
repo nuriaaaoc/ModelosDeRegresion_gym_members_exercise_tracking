@@ -2149,3 +2149,132 @@ plot(modelo_gam_cv, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, 
 Con esto podemos ver como se comporta la variable Age en los distinto modelos, la primera columna con el metodo REML y la segunda con GCV.Cp, como poemos apreciar no hay demasiada diferencia entre ambos ráficos, la parte del ajuste se ve que cuando llega a 40 hay una bajada drástica, y vemos que la varianza en cada tramo es prácticamente la misma. Por otro lado, tenemos los residuos que al igual que con los gráficos de arriba, pasa lo msimo, no se aprecian bastantes diferencias entre ambos. Por lo que podemos concluir que en ambos modelos la diferencia en edf no aporta alguna mejorar en la capacidad predctiva.
 
 Viendo esto, hemos dedicidido quedarnos con el modelo hecho por GCV.Cp ya que el valor edf de la variable Age es ligeramente superior permitiendo un poco más de flexibilidad el la relación no lineal que hay entre las variables Calories_Burned y Age, además de esto no parece haber sobreajuste evidente en la variable Age.
+
+## Modelo por Stepwise.
+
+En el modelo de antes lo que hemos hecho ha sido selecciónar las variables según su relación con Calories_Burned y su incorrelación entre ellas. A continuación lo que vamos a hacer es hacer otro moelo para ver si se predice mejor o peor las calorias que se queman utilizando el método de selección de variables de Stepwise. Por lo que primero hacemos el modelo Stepwise y luego seleccionamos esas variables para nuestro modelo.
+
+```{r}
+# Modelo completo: Usamos todas las variables
+modelo_completo <- lm(Calories_Burned ~ . - Calories_Burned_Binary, data = train)
+
+# Aplicar el método Stepwise (tanto Forward como Backward)
+modelo_stepwise <- step(modelo_completo, direction = "both", trace = 1)
+
+# Ver el resumen del modelo ajustado
+summary(modelo_stepwise)
+```
+
+Como podemos ver en el modelo, las variables que han sido seleccionadas son Age, Gender, Weight, Height, Avg_BPM, Resting_BPM, Session_Duration y BMI. Ahora vamos a hacer el modelo GAM con esas variables y vamos a analizarlo como hemos hecho antes.
+
+```{r}
+modelo_gam_step <- gam(Calories_Burned ~ s(Age) + Gender + s(Weight) + s(Height) + s(Avg_BPM) + s(Resting_BPM) + s(Session_Duration) + s(BMI), data = train, method = "REML")
+summary(modelo_gam_step)
+```
+
+El modelo desarrollado para predecir las calorías quemadas (Calories_Burned) combina efectos paramétricos y suavizados, logrando un excelente ajuste (R² ajustado = 0.985, 98.6% de desviación explicada). La variable Gender muestra un efecto paramétrico positivo y altamente significativo: los hombres tienden a quemar más calorías que las mujeres, controlando por el resto de factores.
+
+Entre los efectos suavizados, destaca s(Age) por su relación compleja y no lineal con las calorías quemadas. Variables como s(Avg_BPM), s(Session_Duration), s(Height), s(Resting_BPM) y s(BMI) presentan relaciones casi lineales, mientras que s(Weight) muestra una moderada no linealidad.
+
+El modelo ofrece una base sólida para el análisis, aunque futuras simplificaciones de suavizados podrían mejorar su interpretabilidad y evitar posibles problemas de sobreajuste.
+
+Despues de observar las relaciones casi lineales de algunas de las variables suavizadas, lo que vamos a hacer es representar todas las variables suavizadas para observar si la relación que se puede observar llega a ser lineal o  no.
+
+```{r}
+plot(modelo_gam_step, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Como se puede apreciar en los gráficos, tenemos que la variable Age si que presenta una no lienalidad con la variable objetivo, al igual que la variable Weight. Por otro lado, las variables Height, Avg_BPM, Resting_BPM, Session_Duration y BMI, presentan un ajuste bastante lineal, lo que nos puede dar a entender que suavizar esas funciones solo nos harian tener un modelo más complejo de explicar. Esto se tiene que confirmar con la visisón de sus residuos.
+
+```{r}
+plot(modelo_gam_step, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+Efectivamente, al ver los residuos de las variables suavizadas, podemos ver como encontramos residuos no linelaes en las variables Age y Weight, mientras que en el resto de las varibles podemos ver que se ajustan bastante bien a la recta, resaltando su linealidad. A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam_step <- AIC(modelo_gam_step)
+print(aic_modelo_gam_step)
+```
+
+Podemos ver que este valor de primeras es incluso mejor que el valor AIC que hemos obtenido hacendo el modelo GAM por relaciones de variables, lo que nos puede indicar que este modelo tiene un mejor ajuste y que se podría decir que es mejor que el anterior. Por lo que, ahora vamos a suavizar aquellas variable que presenten no lienalidad, Age y Weight, y vamos a estudiar si el modelo es mejor o no.
+
+```{r}
+modelo_gam_step_lin <- gam(Calories_Burned ~ s(Age) + Gender + s(Weight) + Height + Avg_BPM + Resting_BPM + Session_Duration + BMI, data = train, method = "REML")
+summary(modelo_gam_step_lin)
+```
+El modelo construido para predecir las calorías quemadas (Calories_Burned) combina tanto efectos paramétricos como suavizados, logrando un ajuste sobresaliente (R² ajustado = 0.985, 98.6% de desviación explicada). La variable Gender mantiene un efecto paramétrico positivo y altamente significativo, indicando que los hombres tienden a quemar más calorías que las mujeres, bajo igualdad de condiciones en las demás variables.
+
+En cuanto a los efectos suavizados, s(Age) resalta como una relación compleja y no lineal con la respuesta, mientras que s(Weight) presenta una no linealidad moderada. El resto de variables (Height, Avg_BPM, Resting_BPM, Session_Duration y BMI) se modelan de forma paramétrica, mostrando relaciones principalmente lineales y altamente significativas.
+
+El modelo presenta una estructura más sencilla que favorece la interpretabilidad, al tiempo que mantiene una elevada capacidad predictiva, permitiendo explicar de manera eficiente el comportamiento de las calorías quemadas durante la actividad física.
+
+```{r}
+plot(modelo_gam_step_lin, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Despues de reducir el número de variables suavizadas, podemos ver mejor como la relación que hay entre las varibles Age y Weight con Calories_Burned es no lienes. Por interpretabilidad y ya que lo que buscamos es hacer un modelo que nos prediga lo mejor posible, escogemos este modelo, que es más facil de interpretar y no tiende al sobreajuste. Para ello, vamos a ver como se ven los residuos.
+
+```{r}
+plot(modelo_gam_step_lin, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+
+Podemos ver como que los residuos de las variables siguen más o menos la relación no lienal que ya habiamos visto antes. Si que es cierto que se puede apreciar algunos valores atípicos, sobre todo en weight. A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam_step_lin <- AIC(modelo_gam_step_lin)
+print(aic_modelo_gam_step_lin)
+```
+
+Despues de ver el valor AIC que hemos obtenido ante, podemo observar que este valor ha reucido un poco, dandonos a entender que no suavizar ciertas variables no hace un modelo que es más explicable y que además el modelo tiene un mejor ajuste. Por lo que despues de seleccionar el modelo, vamos a ver lso residuos del modelo.
+
+```{r}
+par(mfrow = c(2, 2))
+gam.check(modelo_gam_step_lin)
+```
+
+Viendo el QQ-Plot, podemos ver que los residuos siguen razonablemente bien la línea de referencia, indicando que la normalidad de los residuos es aceptable, aunque hay pequeñas desviaciones en las colas que podrían sugerir leves outliers o ligera no normalidad.
+
+En el segundo gráfico, de la comparación entre residuos y predicciones lineales, podemo ver que el patrón en forma de U en los residuos indica problemas de no linealidad: el modelo no captura completamente la relación entre la variable predictora y la respuesta. Hay evidencia de que el modelo actual no es suficientemente flexible.
+
+Al analizar los histogramas con los residuos, esto nos muestra residuos aproximadamente simétricos y centrados en cero, lo que refuerza que los residuos tienen una distribución cercana a la normal, con ligeras imperfecciones que no son preocupantes en exceso.
+
+Por último, tenemos las respuestas segun los valores ajustado, en el cual aunque existe una relación creciente entre la respuesta y los valores ajustados, se observa una ligera curvatura en los extremos, indicando que el modelo subestima o sobreestima para valores altos, lo que también sugiere falta de captura de no linealidad.
+
+A parte, tenemos que el modelo ha convergido correctamente y de forma estable, con un gradiente cercano a cero y un Hessiano positivo definido, lo que confirma que se alcanzó un óptimo. El rango del modelo es completo, indicando ausencia de problemas de colinealidad. Además, el chequeo de la dimensión base muestra que no hay indicios de que el número de bases (k) sea insuficiente, ya que los índices k-index están cerca de 1 y los valores p son altos. En conjunto, estos resultados indican que el modelo está bien ajustado y no requiere modificaciones en su configuración actual.
+
+A continación vamos intentar encontrar un grado se suavizado mejor para tener un mejor contros con el sobreajuste. Para ello, vamos a ajustar dos modelos, el primero va a ser con el método REML y el segundo con el método GCV.Cp. Como el modelo hecho por el método REML ya está creado de antes, lo vamos a volver a ver.
+
+```{r}
+summary(modelo_gam_step_lin)
+```
+
+```{r}
+modelo_gam_step_cv <- gam(Calories_Burned ~ s(Age) + Gender + s(Weight) + Height + Avg_BPM + Resting_BPM + Session_Duration + BMI, data = train, method = "GCV.Cp")
+summary(modelo_gam_step_cv)
+```
+ 
+Comparando ambos modelos podemos ver lo siguiente: por un lado, los valores del intercepto y de los coeficientes asociados a Gender, Avg_BPM, Resting_BPM, Session_Duration, BMI y Height son muy similares en ambos casos. Además, todas estas variables son estadísticamente significativas, ya que presentan p-valores extremadamente bajos, lo que indica que tienen un impacto importante sobre las calorías quemadas. El hecho de que estos efectos sean lineales en ambos modelos y tan similares en magnitud y significación sugiere que su relación con la variable respuesta es estable y bien capturada sin necesidad de suavizarlas.
+
+En cuanto a los efectos suavizados, en ambos modelos las variables Age y Weight han sido modeladas de forma no lineal mediante funciones suavizadas (s(Age) y s(Weight)). Para Age, el grado de complejidad (expresado mediante el valor de edf) es muy parecido en ambos modelos: 8.477 con el método REML y 8.720 con GCV, lo que indica que la relación no lineal entre la edad y las calorías quemadas es consistente y similar en ambos casos. Sin embargo, en el caso de Weight, el valor de edf es notablemente mayor en el modelo GCV (8.016 frente a 4.952 en REML), lo que sugiere que el segundo modelo ha permitido una mayor flexibilidad para capturar la relación entre el peso y las calorías quemadas.
+
+Además, el valor de R-squared ajustado y la desviación explicada son prácticamente idénticos en ambos modelos (98.5%-98.6%), lo cual indica que el ajuste global es excelente en ambos casos. Sin embargo, el modelo ajustado mediante GCV presenta una escala estimada ligeramente más baja (1050.6 frente a 1061.4) y un valor de GCV aceptable, lo que refuerza que ha conseguido un mejor equilibrio entre ajuste y complejidad sin signos evidentes de sobreajuste.
+
+Dado que el objetivo de este trabajo es predecir las calorías quemadas, el modelo ajustado mediante GCV sería el más adecuado para este propósito, ya que consigue una mejor captura de las relaciones no lineales, especialmente en el caso del peso, y ofrece un ajuste global ligeramente superior.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelo_gam_step_lin, main = "Ajuste GAM con REML con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_step_cv, main = "Ajuste GAM con GCV.Cp con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_step_lin, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con REML")
+plot(modelo_gam_step_cv, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con GCV.Cp")
+```
+
+A partir del análisis comparativo de los modelos ajustados mediante REML y GCV, se observa que ambos capturan de manera adecuada las relaciones no lineales entre las variables Age y Weight con las calorías quemadas. En ambos casos, la variable Age muestra una relación estable hasta aproximadamente los 40 años, a partir de los cuales se detecta una disminución importante en las calorías quemadas, patrón que es consistente entre ambos métodos. La variable Weight, por su parte, presenta una tendencia negativa en su efecto, siendo más marcada y flexible en el ajuste mediante GCV.
+
+Los modelos ajustados con GCV muestran una mayor flexibilidad en el suavizado (valores de edf más elevados), permitiendo capturar detalles adicionales en la relación entre las variables predictoras y la respuesta. Esta flexibilidad adicional es especialmente notable en el caso de Weight, donde el modelo GCV detecta variaciones locales que el modelo REML suaviza más agresivamente.
+
+No obstante, ambos métodos proporcionan un ajuste de alta calidad, con residuos bien distribuidos y sin patrones de heterocedasticidad evidentes. La elección entre ambos métodos depende del objetivo final: si se prioriza un modelo más preciso y detallado sobre los datos observados, el ajuste mediante GCV es más recomendable; si se busca un modelo más sencillo, estable y potencialmente más robusto ante datos nuevos, el ajuste mediante REML sería la opción más adecuada.
+
+En conclusión, dado que el objetivo principal es modelar de la forma más precisa posible las calorías quemadas en función de las variables consideradas, el modelo ajustado mediante GCV se considera el más adecuado para este caso.
