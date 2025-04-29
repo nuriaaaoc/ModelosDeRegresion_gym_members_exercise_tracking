@@ -2415,3 +2415,60 @@ El segundo modelo lo hemos hecho median la selección de variables de Stepwise, 
 Por último tenemos el modelo que se ha creado mediante la selección de variables con Elastic Net, en este modelo se ha observado que el AIC a aumentado mucho, incluso más que el primer modelo, al igual que hemos podido observar como hay variables, como Session_Duration, que presentan un poco se sobreajuste. Por esto y porque escoge casi todas las variables del dataset, creeemos que es el peor modelo de todos, cierto es que tiene una devianza explicada del 98.7% y un R-sq ajustado de 0.987 lo que nos dice que el modelo es muy preciso, además de esto tiene in valor -rm de 3329.8, pero hemos decidido dar prioridad a evitar sobredispersión con bastante explicabilidad a un modelo que sea super explicable pero que esté sobreajustado.
 
 Por lo que una vez vistos los modelos, hemos optado por seleccionar el segundo modelo, ya que es bastante explicable y sencillo, además de su precisión para el análisis
+
+
+
+## Conclusión General
+
+En este trabajo exploramos distintas técnicas de regresión para entender y predecir cuántas calorías se queman durante una sesión de ejercicio. Comenzamos con modelos básicos como la regresión lineal y logística, y luego avanzamos hacia modelos más flexibles y complejos como los modelos lineales generalizados (GLM) y los modelos aditivos generalizados (GAM).
+
+Cada modelo nos aportó diferentes perspectivas: algunos nos permitieron interpretar fácilmente el efecto de cada variable, mientras que otros fueron más efectivos para captar relaciones no lineales o complejas entre los datos. Evaluamos los modelos usando métricas como el AIC, la proporción de variabilidad explicada (devianza), y el ajuste general (R² ajustado), además de analizar los residuos para verificar si el modelo era adecuado.
+
+Después de comparar los resultados, decidimos que el mejor modelo es un **GAM ajustado mediante selección Stepwise**, que solo suaviza las variables que realmente lo necesitan (Age y Weight). Este modelo logró un equilibrio ideal entre precisión, facilidad para interpretar los resultados y estabilidad frente al sobreajuste.
+
+En resumen, aprendimos que no siempre el modelo más complejo es el mejor: a veces, un modelo bien ajustado y sencillo puede ofrecer mejores resultados si se adapta bien a los datos y se interpreta fácilmente.
+
+```{r}
+# Crear data frame con información de modelos
+tabla_modelos <- data.frame(
+  mode1 = c("Regresión Lineal", 
+             "Regresión Logística", 
+             "Poisson", 
+             "Binomial Negativa", 
+             "Gamma", 
+             "GAM (Relación, REML)", 
+             "GAM (Stepwise, REML)", 
+             "GAM (Elastic Net)", 
+             "GAM (Stepwise, GCV)", 
+             "GAM (EN simplificado, REML)"),
+  Tipo = c("Lineal", "GLM (binomial)", "GLM (Poisson)", "GLM (NegBin)", "GLM (Gamma)",
+           "GAM", "GAM", "GAM", "GAM", "GAM"),
+  R2_Ajustado = c("Bajo", "-", "-", "-", "-", 
+                  "0.985", "0.985", "0.987", "0.985", "0.987"),
+  Devianza = c("Baja", "-", "-", "-", "-", 
+               "98.5%", "98.6%", "98.7%", "98.6%", "98.7%"),
+  AIC = c("Alto", "~211", "Alto", "↓ AIC", "Moderado", 
+          "6753.7", "**Menor**", "↑ AIC", "≈", "≈"),
+  REML = c("-", "-", "-", "-", "-", 
+           "3378", "**3359.8**", "3329.8", "3360.5", "3376.4"),
+  Observaciones = c(
+    "No capta no linealidad",
+    "Buena precisión, AUC = 0.98",
+    "Sobredispersión presente",
+    "Mejora respecto a Poisson",
+    "Ajuste razonable para variables continuas",
+    "Muy preciso pero más complejo",
+    "Modelo ELEGIDO: equilibrio entre precisión y simplicidad",
+    "Riesgo de sobreajuste por alta flexibilidad",
+    "Similar a REML pero más flexible",
+    "Buen rendimiento, estructura más compleja"
+  )
+)
+
+# Mostrar tabla con formato bonito
+kable(tabla_modelos, caption = "Comparativa de Modelos Ajustados")
+
+```
+
+
+
