@@ -251,7 +251,7 @@ train |> ggplot(aes(x = Water_Intake, y = Calories_Burned)) +
   theme_minimal()
 
 ```
-Podemeos observar una tendencia positiva en la que mayor hidratación esté asociada con un mayor gasto calórico.
+Podemos observar una tendencia positiva en la que mayor hidratación esté asociada con un mayor gasto calórico.
 
 
 ### Relación entre Water_Intake y Max_BPM / Avg_BPM
@@ -1856,7 +1856,7 @@ bptest_result <- bptest(modelo_stepwise_sqrt)
 print(bptest_result)
 ```
 
-Como acabamos de comprobar, el hacer la raíz cuadrada el modelo del metodo forward, obtenemos más predicción, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípicos a la izquierda de la gráfica y que según la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitándonos la heterocedasticidad que teníamos al hacer el modelo normal sin ninguna tranformación de variables. Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raíz. Primero buscamos el mejor lambda par nuestra transformación.
+Como acabamos de comprobar, el hacer la raíz cuadrada el modelo del metodo forward, obtenemos más predicción, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípicos a la izquierda de la gráfica y que según la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de la prueba de homocedasticidad nos da 0.72 quitándonos la heterocedasticidad que teníamos al hacer el modelo normal sin ninguna tranformación de variables. Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raíz. Primero buscamos el mejor lambda par nuestra transformación.
 
 ```{r}
 bc_stepwise <- boxcox(modelo_stepwise, lambda = seq(-2, 2, 0.1))
@@ -2052,11 +2052,11 @@ summary(modelo_gam)
 
 En este análisis del modelo, hemos utilizado como predictores Age, Gender, Avg_BPM y Session_Duration. Como podemos ver, este modelo utiliza la familia gaussiana como función de enlace identidad, ya que la función objetivo es continua y aproximadamente simétrica, como hemos visto antes. Este modelo nos indica que ser hombre se asocia a un incremento promedio de 86.98 calorías en comparació con la mujer, además de que el efecto es bastante significativo, evidenciando su relevandia para explicar la variable objetivo.
 
-Por otro lado, las variables suavizadas, tenemos que la variable suavizada de Age, tiene un valor edf mayor a 1, lo que nos indica que puede sigerir patrones curvos o no lineales importantes. Sin embargo, las demás variables, tiene un edf practicamente 1, implicando un comportamiento practicamente lineal con la variable objetivo. Sin embargo, todas las variables suavizadas, son altamanete significativas, indicando que susu efectos contribuyen significativamente al modelo.
+Por otro lado, las variables suavizadas, tenemos que la variable suavizada de Age, tiene un valor edf mayor a 1, lo que nos indica que puede sigerir patrones curvos o no lineales importantes. Sin embargo, las demás variables, tiene un edf practicamente 1, implicando un comportamiento practicamente lineal con la variable objetivo. Sin embargo, todas las variables suavizadas, son altamanete significativas, indicando que su efectos contribuyen significativamente al modelo.
 
 A parte de las variables, hay otros valores bastante importantes y destacados que hay que resaltar, como el valor de 98.5% de la deviance explicada, lo que nos da a entender que este modelo es capaz de explicar casi toda la variabilidad observada. Por otro lado tenemos el valor -REML de 3376.4, lo que nos ayuda a poder comparar distintos modelo GAM.
 
-Despues de ver nuestro modelo, podemos ver que tenemos distintos valores de edf, el de age, como es mayor a 1, nos indica que una posible relación no lineal, sin embargo en los otros, podemos ver como el valor es practicamente 1 sugiriendonos una relacion linal con estas variables. Por otro lado, si vemos el p-valor de las variables suavizadas, nos damos cuenta de que es bastante pequeño, lo que no siguiere que la relación de cada variable con la variable dependiente es estadísticamente significativa. A continuación, vamos a graficar el modelo para ver los efectos suavizados.
+Después de ver nuestro modelo, podemos ver que tenemos distintos valores de edf, el de age, como es mayor a 1, nos indica que una posible relación no lineal, sin embargo en los otros, podemos ver como el valor es practicamente 1 sugiriendonos una relacion linal con estas variables. Por otro lado, si vemos el p-valor de las variables suavizadas, nos damos cuenta de que es bastante pequeño, lo que no siguiere que la relación de cada variable con la variable dependiente es estadísticamente significativa. A continuación, vamos a graficar el modelo para ver los efectos suavizados.
 
 ```{r}
 plot(modelo_gam, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
@@ -2090,7 +2090,7 @@ Comparando con el modelo anterior, vemos varias cosas, la primera de todoas es q
 plot(modelo_gam_lineal, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
 ```
 
-Despues de hacer el modelo con solamente la variable Age suavizada, obtenemos el gráfico enterior, podemos observar que la relación entre la edad y las calorias quemadas no es lineal. A medida que la edad aumenta desde los 20 hasta los 40 años, la función suavizada presenta pequeñas ondulaciones, indicando variaciones en el efecto de la edad, pero después de los 40 años se aprecia un descenso muy marcado en la respuesta, estabilizándose posteriormente. Esto sugiere que alrededor de los 40 años hay un cambio importante en cómo la edad influye en las calorías quemadas. Además, las líneas de puntos representan los intervalos de confianza, mostrando que la estimación es bastante precisa en la mayor parte del rango de edades. Ahora vamos a observar el mismo gráfico pero con los residuos de la variable.
+Después de hacer el modelo con solamente la variable Age suavizada, obtenemos el gráfico enterior, podemos observar que la relación entre la edad y las calorias quemadas no es lineal. A medida que la edad aumenta desde los 20 hasta los 40 años, la función suavizada presenta pequeñas ondulaciones, indicando variaciones en el efecto de la edad, pero después de los 40 años se aprecia un descenso muy marcado en la respuesta, estabilizándose posteriormente. Esto sugiere que alrededor de los 40 años hay un cambio importante en cómo la edad influye en las calorías quemadas. Además, las líneas de puntos representan los intervalos de confianza, mostrando que la estimación es bastante precisa en la mayor parte del rango de edades. Ahora vamos a observar el mismo gráfico pero con los residuos de la variable.
 
 ```{r}
 plot(modelo_gam_lineal, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
@@ -2146,7 +2146,7 @@ plot(modelo_gam_lineal, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TR
 plot(modelo_gam_cv, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con GCV.Cp")
 ```
 
-Con esto podemos ver como se comporta la variable Age en los distinto modelos, la primera columna con el metodo REML y la segunda con GCV.Cp, como poemos apreciar no hay demasiada diferencia entre ambos ráficos, la parte del ajuste se ve que cuando llega a 40 hay una bajada drástica, y vemos que la varianza en cada tramo es prácticamente la misma. Por otro lado, tenemos los residuos que al igual que con los gráficos de arriba, pasa lo msimo, no se aprecian bastantes diferencias entre ambos. Por lo que podemos concluir que en ambos modelos la diferencia en edf no aporta alguna mejorar en la capacidad predctiva.
+Con esto podemos ver como se comporta la variable Age en los distinto modelos, la primera columna con el metodo REML y la segunda con GCV.Cp, como podemos apreciar no hay demasiada diferencia entre ambos gráficos, la parte del ajuste se ve que cuando llega a 40 hay una bajada drástica, y vemos que la varianza en cada tramo es prácticamente la misma. Por otro lado, tenemos los residuos que al igual que con los gráficos de arriba, pasa lo msimo, no se aprecian bastantes diferencias entre ambos. Por lo que podemos concluir que en ambos modelos la diferencia en edf no aporta alguna mejorar en la capacidad predctiva.
 
 Viendo esto, hemos dedicidido quedarnos con el modelo hecho por GCV.Cp ya que el valor edf de la variable Age es ligeramente superior permitiendo un poco más de flexibilidad el la relación no lineal que hay entre las variables Calories_Burned y Age, además de esto no parece haber sobreajuste evidente en la variable Age.
 
