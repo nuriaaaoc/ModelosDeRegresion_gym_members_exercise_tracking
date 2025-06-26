@@ -1,0 +1,2473 @@
+---
+title: "gym_members"
+author: "Nuria Oviedo, Aitana Garcia y Marcos López"
+date: "2025-02-06"
+output: 
+  html_document:
+    html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: 
+      smooth_scroll: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducción
+
+El conjunto de datos contiene un análisis de patrines de actividad física y rendimiento en distintos niveles de experiencia en gimnasios.
+
+## Descripción del Conjunto de Datos
+
+El conjunto de datos analiza los patrones de actividad física y rendimiento en gimnasios, considerando distintos niveles de experiencia de los miembros.
+
+
+Estos datos se han extraído de [kaggle](https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset). Según la propia descripción de los datos,este conjunto de datos nos proporciona una descripción detallada de las rutinas de ejercicio, los atributos físicos y las métricas de aptitud física de los miembros de gimnasios. En temas de salud es muy importante llevar un monitoreo de las cosas que hay que hacer para estar bien físicamente. El objetivo de este sistema es poder buscar patrones y evidencias de lo que tiene que hacer una persona para estar bien fisica y mentalmente. Este conjunto de dato nos da información sobre datos demográficos y niveles de experiencia, lo que permite un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias de salud. 
+
+
+### Objetivo del Estudio
+
+En el ámbito de la salud, es crucial monitorear las actividades necesarias para mantener un estado físico y mental óptimo. Este análisis busca identificar patrones y evidencias que permitan mejorar el rendimiento deportivo y la salud general de los usuarios de gimnasios.
+
+El conjunto de datos incluye información sobre demografía y niveles de experiencia, lo que permite realizar un análisis integral de los patrones de aptitud física, la progresión de los atletas y las tendencias en la salud.
+
+
+## Descripción de las Variables
+
+Según la descripción oficial de los datos, las variables que conforman el conjunto de datos son:
+
+* Edad: Edad del miembro del gimnasio.
+* Género: Género del miembro del gimnasio (masculino o femenino).
+* Peso (kg): Peso del miembro en kilogramos.
+* Altura (m): Altura del miembro en metros.
+* Max_BPM: Frecuencia cardíaca máxima (pulsaciones por minuto) durante las sesiones de entrenamiento.
+* Avg_BPM: Frecuencia cardíaca promedio durante las sesiones de entrenamiento.
+* Resting_BPM: Frecuencia cardíaca en reposo antes del entrenamiento.
+* Session_Duration (horas): Duración de cada sesión de entrenamiento en horas.
+* Calorías_Quemadas: Total de calorías quemadas durante cada sesión.
+* Workout_Type: Tipo de entrenamiento realizado (por ejemplo, Cardio, Fuerza, Yoga, HIIT).
+* Fat_Percentage: Porcentaje de grasa corporal del miembro.
+* Consumo_de_agua (litros): Ingesta diaria de agua durante los entrenamientos.
+* Frecuencia_de_entrenamiento (días/semana): Número de sesiones de entrenamiento por semana.
+* Nivel_Experiencia: Nivel de experiencia, desde principiante (1) hasta experto (3).
+* IMC: Índice de Masa Corporal, calculado a partir de la altura y el peso.
+
+Dado que es un problema de regresión, la variable objetivo (Cantidad de calorias quemadas durante la sesión de entrenamiento) es continua.
+
+
+## Brainstorming y Enfoque del Estudio
+
+Se plantearon varias ideas de análisis para el dataset:
+
+1. **Predicción de Calorías Quemadas:**
+   - Modelar la cantidad de calorías quemadas en función de variables fisiológicas y de entrenamiento.
+   - Variables predictoras: Edad, Género, Peso, Altura, Max_BPM, Avg_BPM, Resting_BPM, Session_Duration, Workout_Type, Fat_Percentage, Water_Intake, Workout_Frequency, Experience_Level y BMI.
+
+2. **Clasificación del Tipo de Entrenamiento:**
+   - Identificar el tipo de entrenamiento (Workout_Type) a partir de variables como Max_BPM, Avg_BPM, Resting_BPM, Calories_Burned, Session_Duration y BMI.
+
+3. **Duración Ideal de la Sesión:**
+   - Determinar la duración óptima del entrenamiento según las características del usuario y su desempeño.
+
+4. **Impacto de la Hidratación en el Rendimiento:**
+   - Analizar cómo la ingesta de agua (Water_Intake) afecta variables como Max_BPM, Avg_BPM, Calories_Burned o Session_Duration.
+
+### Selección de Enfoque
+
+Para este estudio, nos centraremos en **la predicción de calorías quemadas** y **el impacto de la hidratación en el rendimiento físico**, ya que son dos aspectos clave para mejorar el entrenamiento y la salud.
+
+
+
+## Cargar paquetes necesarios
+
+```{r}
+
+library(ggplot2)
+library(car) # pruebas de diagnóstico
+library(lmtest) # prueba de homocedasticidad
+library(dplyr) # manipulación de datos
+library(GGally) # visualización avanzad
+library(HistData) # datos históricos de Galton
+library(gridExtra) # organizar múltiples gráficos
+library(caret)
+library(corrplot)
+library(MASS) 
+library(tidyverse)
+library(minpack.lm)
+library(glmnet)
+library(knitr)
+
+```
+
+
+# 1. Data undestandig
+
+## Cargamos los datos.
+```{r}
+datos <- read.csv("gym_members_exercise_tracking.csv")
+```
+```{r include=FALSE}
+datos <- datos %>% 
+  rename(Weight = Weight..kg., 
+         Height = Height..m., 
+         Session_Duration = Session_Duration..hours., 
+         Water_Intake = Water_Intake..liters., 
+         Workout_Frequency = Workout_Frequency..days.week.)
+```
+
+## Tamaño del dataset.
+```{r}
+size <- dim(datos)
+```
+
+En estos datos podemos ver que tenemos un total de `r size[1]` observaciones y `r size [2]` variables en este dataset.
+
+## Variables.
+```{r}
+str(datos)
+```
+
+Al ver esto podemos ver que estos datos son en su mayoría de tipo numérico o entero, sin embargo, tenemos dos variables de tipo cadena de caracteres (`char`), `Gender` y `Workout_Type`.
+
+## Valores faltantes.
+```{r}
+sum(is.na(datos))
+```
+
+Vemos que no tenemos ningún dato faltante o missing entre nuestros datos.
+
+## Primer vistazo a los datos.
+```{r}
+head(datos, 5)
+```
+
+
+## Partición del Dataset
+
+Realizamos la partición de nuestros datos.
+
+```{r}
+# Ponemos una semilla para que la partición sea siempre la misma
+set.seed(1)
+
+# Buscamos los indices para la parte de train y de test y val
+indices_train <- createDataPartition(datos$Calories_Burned, p = 0.7, list = FALSE)
+
+# Creamos la variable train y test_val
+train <- datos[indices_train, ]
+test_val <- datos[-indices_train, ]
+
+# Buscamos los indices para test
+indices_test <- createDataPartition(test_val$Calories_Burned, p = 0.5, list = FALSE)
+
+# Creamos la variabe test y val
+test <- test_val[indices_test, ]
+val <- test_val[-indices_test, ]
+```
+
+Miramos la información de nuestros datos de entrenamiento
+
+```{r}
+dim(train)
+head(train)
+str(train)
+```
+
+# 2.**Análisis Exploratorio de Datos (EDA)**
+
+
+
+En esta sección, realizamos un análisis exploratorio de los datos para comprender mejor la distribución de las variables y las relaciones entre ellas. Nos enfocaremos en dos objetivos principales:  
+
+1. **Predicción de Calorías Quemadas**  
+2. **Impacto del Nivel de Hidratación en el Rendimiento**  
+
+## **Análisis de la Variable Objetivo: Calorías Quemadas** 
+
+Antes de nada vamos a ver información de nuestra variable objetivo importante
+```{r}
+summary(train$Calories_Burned)
+```
+Con esto nos da una idea de la cantidad de calorias que las personas pueden quemar, vemos como la media es casi 900 kcalorías y vemos tambien que el mínimo es de unas 300 kcal y el máximo es de 1700 kcal. 
+
+Vamos a ver la forma de nuestra variable objetivo gráficamente.
+```{r}
+train |> ggplot(mapping = aes(x = Calories_Burned)) +
+  geom_histogram(bins = 30) +
+  theme_bw()
+```
+
+Viendo este histograma se puede ver como las calorias quemadas se acerca a una distribución normal, viendo los datos de anteriores, comprobamos que este histograma si que tiene sentido. 
+
+
+## Distribucion de Calories_burned por genero
+
+```{r}
+train |> ggplot(aes(x = Gender, y = Calories_Burned, fill = Gender)) +
+  geom_boxplot() +
+  labs(title = "Distribución de Calorías Quemadas por Género",
+       x = "Género", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+
+Este gráfico permite analizar si hay diferencias significativas en las calorías quemadas entre hombres y mujeres, podemos observar que la media de calorías quemadas en hombres es ligeramente mayor aunque no hay una diferencia significativa.
+
+## Relación entre Calories_Burned y Session_Duration
+
+```{r}
+train |> ggplot(aes(x = Session_Duration, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Duración del Entrenamiento y Calorías Quemadas",
+       x = "Duración del Entrenamiento (horas)", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+Podemos ver que hay una tendencia clara entre el tiempo de entrenamiento y las calorías quemadas
+
+## Relación entre Calories_Burned y avg_bpm
+```{r}
+train |> ggplot(aes(x = Avg_BPM, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre avg BPM y Calorías Quemadas",
+       x = "AVG_BPM", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+En el gráfico observamos la relación entre el average BPM y las calorías quemadas. Se observa una ligera tendencia positiva, representada por la línea de regresión en rojo, lo que indica que a mayor average bpm, mayor es la cantidad de calorías quemadas. Aunque la dispersión de los puntos indica que existen variaciones significativas entre los datos, lo que sugiere que influyen otros factores como la duración de la sesión, el género o el tipo de entrenamiento.
+
+## Impacto del Nivel de Hidratación en el Rendimiento
+
+### Relación entre Water_Intake y Calories_Burned
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Calorías Quemadas",
+       x = "Consumo de Agua (litros)", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+Podemeos observar una tendencia positiva en la que mayor hidratación esté asociada con un mayor gasto calórico.
+
+
+### Relación entre Water_Intake y Max_BPM / Avg_BPM
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Max_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Máxima",
+       x = "Consumo de Agua (litros)", y = "Max BPM") +
+  theme_minimal()
+
+train |> ggplot(aes(x = Water_Intake, y = Avg_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Promedio",
+       x = "Consumo de Agua (litros)", y = "Avg BPM") +
+  theme_minimal()
+
+```
+Por lo que se observa en la imagen, la relación entre la ingesta de agua y la frecuencia cardíaca máxima (Max BPM) es prácticamente inexistente. La línea de tendencia roja es casi horizontal, lo que indica una correlación muy baja o nula entre estas variables.
+
+### Comparación del rendimiento cardíaco según niveles de hidratación
+
+```{r}
+train %>%
+  mutate(Water_Intake_Level = case_when(
+    Water_Intake < 2 ~ "Baja",
+    Water_Intake >= 2 & Water_Intake < 3 ~ "Media",
+    Water_Intake >= 3 ~ "Alta"
+  )) %>%
+  ggplot(aes(x = Water_Intake_Level, y = Avg_BPM, fill = Water_Intake_Level)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Frecuencia Cardíaca Promedio según Consumo de Agua",
+       x = "Nivel de Ingesta de Agua",
+       y = "Frecuencia Cardíaca Promedio (BPM)") +
+  theme_minimal() +
+  scale_fill_manual(values = c("red", "yellow", "green"))
+
+```
+
+```{r}
+cor.test(train$Water_Intake, train$Avg_BPM)
+
+```
+El resultado del test de correlación de Pearson indica que no hay una relación significativa entre el consumo de agua y la frecuencia cardíaca promedio (Avg_BPM):
+
+Coeficiente de correlación (r): 0.0067 → Casi nula, lo que sugiere que no hay una asociación lineal entre ambas variables.
+p-valor: 0.8608 → Muy alto, lo que significa que no podemos rechazar la hipótesis nula (es decir, no hay evidencia estadística de una relación).
+Intervalo de confianza al 95%: [-0.068, 0.081] → Incluye el 0, reforzando que la relación es débil o inexistente.
+
+
+```{r}
+ggplot(train, aes(x = Water_Intake, y = Session_Duration)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  labs(title = "Relación entre Ingesta de Agua y Duración del Entrenamiento",
+       x = "Consumo de Agua (litros)", 
+       y = "Duración del Entrenamiento (horas)") +
+  theme_minimal()
+
+```
+Observamos una pendiente positiva, indicando que las personas más hidratadas entrenan por más tiempo.
+
+### Correlación entre Consumo de Agua y Duración del Entrenamiento
+
+```{r}
+cor.test(train$Water_Intake, train$Session_Duration)
+
+```
+Relación entre Consumo de Agua y Duración del Entrenamiento
+
+Correlación: 0.246 (moderada)
+p-valor: 6.23e-11 (muy significativo)
+
+ Hay una relación positiva y significativa entre la ingesta de agua y la duración del entrenamiento. Esto sugiere que las personas que se hidratan más tienden a entrenar por más tiempo.
+
+
+### Correlación entre Consumo de Agua y Calorías Quemadas
+
+```{r}
+cor.test(train$Water_Intake, train$Calories_Burned)
+
+```
+
+Correlación: 0.330 (moderada)
+p-valor: < 2.2e-16 (extremadamente significativo)
+
+Existe una relación clara entre la hidratación y la cantidad de calorías quemadas. Esto indica que una mayor ingesta de agua podría estar asociada con un mayor gasto energético durante el ejercicio.
+
+
+
+## Impacto del Nivel de Hidratación en el Rendimiento
+
+Uno de los objetivos principales es analizar cómo la hidratación influye en el rendimiento deportivo. Exploramos su relación con calorías quemadas, BPM y duración del entrenamiento.
+
+### Relación entre Water_Intake y Calories_Burned
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Calories_Burned)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Calorías Quemadas",
+       x = "Consumo de Agua (litros)", y = "Calorías Quemadas") +
+  theme_minimal()
+
+```
+Podemeos observar una tendencia positiva en la que mayor hidratación esté asociada con un mayor gasto calórico.
+
+
+### Relación entre Water_Intake y Max_BPM / Avg_BPM
+
+```{r}
+train |> ggplot(aes(x = Water_Intake, y = Max_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Máxima",
+       x = "Consumo de Agua (litros)", y = "Max BPM") +
+  theme_minimal()
+
+train |> ggplot(aes(x = Water_Intake, y = Avg_BPM)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Ingesta de Agua y Frecuencia Cardíaca Promedio",
+       x = "Consumo de Agua (litros)", y = "Avg BPM") +
+  theme_minimal()
+
+```
+
+Por lo que se observa en la imagen, la relación entre la ingesta de agua y la frecuencia cardíaca máxima (Max BPM) es prácticamente inexistente. La línea de tendencia roja es casi horizontal, lo que indica una correlación muy baja o nula entre estas variables.
+
+### Comparación del rendimiento cardíaco según niveles de hidratación
+
+```{r}
+train %>%
+  mutate(Water_Intake_Level = case_when(
+    Water_Intake < 2 ~ "Baja",
+    Water_Intake >= 2 & Water_Intake < 3 ~ "Media",
+    Water_Intake >= 3 ~ "Alta"
+  )) %>%
+  ggplot(aes(x = Water_Intake_Level, y = Avg_BPM, fill = Water_Intake_Level)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Frecuencia Cardíaca Promedio según Consumo de Agua",
+       x = "Nivel de Ingesta de Agua",
+       y = "Frecuencia Cardíaca Promedio (BPM)") +
+  theme_minimal() +
+  scale_fill_manual(values = c("red", "yellow", "green"))
+
+```
+
+```{r}
+cor.test(train$Water_Intake, train$Avg_BPM)
+
+```
+El resultado del test de correlación de Pearson indica que no hay una relación significativa entre el consumo de agua y la frecuencia cardíaca promedio (Avg_BPM):
+
+Coeficiente de correlación (r): 0.0067 → Casi nula, lo que sugiere que no hay una asociación lineal entre ambas variables.
+p-valor: 0.8608 → Muy alto, lo que significa que no podemos rechazar la hipótesis nula (es decir, no hay evidencia estadística de una relación).
+Intervalo de confianza al 95%: [-0.068, 0.081] → Incluye el 0, reforzando que la relación es débil o inexistente.
+
+
+```{r}
+ggplot(train, aes(x = Water_Intake, y = Session_Duration)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  labs(title = "Relación entre Ingesta de Agua y Duración del Entrenamiento",
+       x = "Consumo de Agua (litros)", 
+       y = "Duración del Entrenamiento (horas)") +
+  theme_minimal()
+
+```
+
+Observamos una pendiente positiva, indicando que las personas más hidratadas entrenan por más tiempo.
+
+### Correlación entre Consumo de Agua y Duración del Entrenamiento
+
+```{r}
+cor.test(train$Water_Intake, train$Session_Duration)
+
+```
+Relación entre Consumo de Agua y Duración del Entrenamiento
+
+Correlación: 0.246 (moderada)
+p-valor: 6.23e-11 (muy significativo)
+
+ Hay una relación positiva y significativa entre la ingesta de agua y la duración del entrenamiento. Esto sugiere que las personas que se hidratan más tienden a entrenar por más tiempo.
+
+
+### Correlación entre Consumo de Agua y Calorías Quemadas
+
+```{r}
+cor.test(train$Water_Intake, train$Calories_Burned)
+
+```
+
+Correlación: 0.330 (moderada)
+p-valor: < 2.2e-16 (extremadamente significativo)
+
+Existe una relación clara entre la hidratación y la cantidad de calorías quemadas. Esto indica que una mayor ingesta de agua podría estar asociada con un mayor gasto energético durante el ejercicio.
+
+
+
+
+
+# 3. Modelización estadística.
+
+
+Nuestro problema para analizar es ver si hay alguna relación positiva entre las calorias que quema una persona por duración del entrenamineto, con esto buscamos como objetivo determinar si cuanto más tiempo una persona entrene, más kcalorias quema durante el entrenamiento al igual que estudiar la relacion del nivel de hidratación y su impacto en el entrenamiento. 
+
+
+## **Predicción de Calorías Quemadas**  
+
+Queremos analizar si existe una **relación positiva entre la duración del entrenamiento y las calorías quemadas**.  
+
+Las variables que se involucran sería el tiempo de duración de las sesiones de entrenamiento (variable explicativa) y la cantidad de calorías que quema una persona (variable respuesta).
+
+Miramos los datos de la variable explicativa
+
+```{r}
+summary(train$Session_Duration)
+```
+
+Concluimos que las personas entrenan una media de 1.256 horas, lo que hace 1 hora y 15 minutos, además podemos ver que dentro de los datos registrados, el mínimo de horas que se ha almacenado es de 0.5 horas y el máximo es de 2 horas.
+
+Observamos los datos de esas dos variables.
+
+```{r}
+variables_objetivo <- select_(train, "Calories_Burned", "Session_Duration")
+head(variables_objetivo, 5)
+```
+
+
+Viendo esta cabecera, se puede ver a simple vista que si que puede haber una realción entre la duración de el entrenamiento con las calorías que se queman, para verlo más claro, representamos ambas variables graficamente.
+
+```{r}
+train |>
+  ggplot(mapping = aes(x = Calories_Burned, y = Session_Duration)) +
+  geom_point()
+```
+
+Dado que tenemos una relación positiva entre estas dos variables, vamos a proponer un modelo para relacionar estas dos variables. Buscamos mediante el método de mínimos cuadrados hallar los valores de $\beta_0$ y $\beta_1$ para poder llegar a un modelo con la forma: $\text{Calorias} = \beta_0 + \beta_1 \text{(Tiempo de entrenamient0)} + \epsilon$.
+
+
+### Regresión Lineal Simple
+
+```{r}
+# Creamos el modelo lineal y lo analizamos
+model1 <- lm(Calories_Burned ~ Session_Duration, data = train)
+summary(model1)
+```
+observamos que el valor del intercepto es de 5,659 aunque midiendo el tiempo en horas no es muy relevante que con o horas entrenadas quemes 5,659
+
+la pendiente tiene un valor de 714.1 es decir por cada hora extra a la sesión de entrenamiento se queman 714.1 calorías más en promedio
+
+al tener un p value < 2.2e^-16 podemos afirmar que la duración es altamente significativa
+
+observamos que R^2 es 0.8114 un ajuste bastante bueno
+
+Error estándar de los residuos = 116: En promedio, las predicciones de nuestro modelo tienen un error de ±116 calorías.
+
+Ahora vamos a ver el modelo gráficamente.
+
+```{r}
+train |> 
+  ggplot(mapping = aes(x = Calories_Burned, y = Session_Duration)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red") +
+  labs(title = "Relación entre calorias quemadas y la duración de la sesion.",
+       x = "Calorias quemadas.",
+       y = "Duración de la sesion.") +
+  annotate("text", x = 500, y = 2.0, label = paste("y =", round(coef(model1)[1], 2), "+", round(coef(model1)[2], 2), "x"), color = "red")
+```
+
+La linea nos muestra una relación alcista segun las calorias quemadas y el tiempo de entrenamiento. Que el valor de $\beta_0$ sea menor a 0 no nos importa mucho, debido a que el mínimo es 0.5 (media hora) por lo que nunca va a ser negarivo ya que $\beta_1$ es 721.79 
+
+### Correlación
+
+Vamos a calcular y entender la correlación entre las variables de nuestro estudio.
+
+```{r}
+# Cogemos solo las variables numéricas para hacer matrices de correlación
+train_num <- select_if(train, is.numeric)
+
+# Matriz de correlación de variables cuantitativas.
+m <- cor(train_num, use = "complete.obs")
+corrplot(m,type = "upper", method="number")
+```
+
+### Covarianza
+```{r}
+calorias <- train$Calories_Burned
+sesion <- train$Session_Duration
+
+covarianza <- round(cov(calorias, sesion), 3)
+
+print(paste("La covarianza entre la calorias quemadas por la sesion de entrenamiento es: ", covarianza))
+```
+
+Con esta covarianza podemos observar que ambas variables aumentan juntas, además de que no es cercana a 0 por lo que entre estas variables existe una relación lineal.
+
+### Coeficiente de correlación de lineal.
+Calculamos y mostramos el coeficiente de correlación de Pearson entre la duración de las sesiones de ejercicio y las calorías quemadas.
+
+```{r}
+correlacion_pearson <- cor(train$Session_Duration, train$Calories_Burned, use = "complete.obs")
+cat("El coeficiente de correlación de Pearson entre la duración de la sesión y las calorías quemadas es:", round(correlacion_pearson, 8), "\n")
+```
+
+La correlación de Pearson nos confirma lo que habíamos visto calculando la covarianza, como es cercano a 1, existe una relación lineal fuerte entre las variables y a su vez al ser positivo, las variables aumentan a la par.
+
+
+### *ANOVA*: Factores que Influyen en las Calorías Quemadas
+
+tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
+la duración de la sesión, el average BPM, el género y el año. Luego encontramos factores influyentes pero en menor medida como el BMI y la altura. El resto de factores no son influyentes en la quema de calorías
+
+```{r}
+# Ajustar el modelo de regresión lineal
+model1 <- lm(Calories_Burned ~ Age + Gender  + Height+ Weight + Max_BPM + Avg_BPM + Resting_BPM + Session_Duration+ Calories_Burned + Workout_Type + Fat_Percentage + Water_Intake + Workout_Frequency + Experience_Level + BMI , data = train)
+
+# Obtener la tabla ANOVA
+tabla_anova <- anova(model1)
+cat("Tabla ANOVA:\n")
+#mostrar tabla anova
+print(tabla_anova)
+```
+tras realizar el analísis de la tabla de varianza (ANOVA) podemos concluir que los factores más influyentes son 
+
+- Session_Duration
+- Avg_BPM
+- Gender
+- Age
+
+
+## **Impacto de la Hidratación en el Rendimiento**
+
+Ahora analizamos si la ingesta de agua afecta el rendimiento deportivo.
+
+
+```{r}
+modelo_hidratacion <- lm(Calories_Burned ~ Water_Intake, data = train)
+summary(modelo_hidratacion)
+
+```
+
+- *Pendiente positiva*, indicando que mayor hidratación se asocia con mayor gasto calórico.
+-  *R^2=0.109*: La hidratación explica el 10.9% de la variabilidad en las calorías quemadas.
+
+
+
+```{r}
+# Graficar la relación entre Consumo de Agua y Calorías Quemadas
+plot(train$Water_Intake, train$Calories_Burned,
+     main = "Impacto de la Hidratación en las Calorías Quemadas",
+     xlab = "Consumo de Agua (litros)",
+     ylab = "Calorías Quemadas",
+     pch = 19, col = "blue")
+
+# Añadir la recta de regresión
+abline(modelo_hidratacion, col = "red", lwd = 2)
+
+```
+
+Podemos observar una ligera tendencia ascendente que nos indica una  relacion positiva entre la hidratacion y la cantidad de calorias quemadas.
+
+
+### Regresión: Water_Intake y Session_Duration
+
+```{r}
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+
+# Ajustar el modelo de regresión para predecir Session_Duration en función de Water_Intake
+modelo2 <- lm(Session_Duration ~ Water_Intake, data = train)
+
+# Crear el gráfico de dispersión con la recta de regresión
+grafico <- ggplot(train, aes(x = Water_Intake, y = Session_Duration)) +
+  geom_point() +  # Puntos de datos
+  geom_smooth(method = "lm", col = "red") +  # Añadir la recta de regresión
+  labs(title = "Relación entre Consumo de Agua y Duración de la Sesión",
+       x = "Consumo de Agua (litros)",
+       y = "Duración de la Sesión (horas)") +
+  annotate("text", x = 3, y = 2.5, label = paste("y =", round(coef(modelo2)[1], 2), "+", round(coef(modelo2)[2], 2), "x"), color = "red")
+
+# Mostrar el gráfico
+print(grafico)
+
+```
+
+
+Podemos observar de nuevo una tendencia positiva entre estas dos variables.
+
+
+### 1. Cálculo de la Covarianza entre "Water Intake" y "Calories Burned"
+
+```{r}
+
+# Seleccionar las variables de interés
+water_intake <- train$Water_Intake
+calories_burned <- train$Calories_Burned
+
+# Calcular la covarianza
+covarianza <- round(cov(water_intake, calories_burned), 3)
+
+# Mostrar el resultado
+print(paste("La covarianza entre la ingesta de agua y las calorías quemadas es:", covarianza))
+```
+
+### 2. Cálculo de la Covarianza entre "Water Intake" y "Session Duration"
+```{r}
+# Seleccionar las variables de interés
+session_duration <- train$Session_Duration
+
+# Calcular la covarianza entre Water Intake y Session Duration
+covarianza_duracion <- round(cov(water_intake, session_duration), 3)
+
+# Mostrar el resultado
+print(paste("La covarianza entre la ingesta de agua y la duración de la sesión es:", covarianza_duracion))
+
+```
+
+
+Observamos que la covarianza entre la ingesta de agua y las calorías quemadas es 54.049, lo que indica una relación positiva moderada entre ambas variables. Esto sugiere que, a medida que aumenta la ingesta de agua, es probable que también aumenten las calorías quemadas durante una actividad física. En cambio, la covarianza entre la ingesta de agua y la duración de la sesión es muy baja, con un valor de 0.051, lo que implica que no existe una relación significativa entre la cantidad de agua consumida y el tiempo dedicado a la actividad física en este caso.
+
+Dado que el análisis entre ingesta de agua y calorías quemadas muestra una relación más destacada, decidimos continuar con este enfoque y dejar de lado la relación entre ingesta de agua y duración de la sesión.
+
+### Coeficiente correlacion Pearson
+
+```{r}
+# Calcular el coeficiente de correlación de Pearson
+coef_correlacion <- round(cor(datos$Water_Intake, datos$Calories_Burned), 3)
+
+# Mostrar el coeficiente de correlación
+cat("El coeficiente de correlación entre el consumo de agua y las calorías quemadas es:", coef_correlacion, "\n")
+
+```
+El coeficiente de correlación de 0.357 indica una relación positiva moderada entre el consumo de agua y las calorías quemadas. Esto sugiere que, en general, a mayor ingesta de agua, mayor es la cantidad de calorías quemadas.
+
+### Estimadores + error estandar
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo2 <- lm(calories_burned ~ water_intake, data = datos)
+
+# Obtener estimadores de los parámetros y errores estándar
+estimadores <- coef(summary(modelo))  # Incluye estimadores y errores estándar
+
+# Imprimir los resultados
+cat("Estimadores para los parámetros del modelo:\n")
+print(estimadores)
+
+```
+El intercepto (521.55) indica que, en promedio, si el consumo de agua es cero, se estiman alrededor de 521.55 calorías quemadas.
+
+El coeficiente de Water Intake (146.36) sugiere que por cada litro adicional de agua consumido, se espera un incremento promedio de 146.36 calorías quemadas.
+
+El valor p del coeficiente de water_intake es 7.36e-19, lo que indica una asociación estadísticamente significativa entre el consumo de agua y las calorías quemadas.
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo2 <- lm(calories_burned ~ water_intake, data = datos)
+
+# Obtener resumen del modelo
+summary(modelo2)
+
+```
+
+El análisis de regresión lineal entre el consumo de agua (Water Intake) y las calorías quemadas (Calories Burned) indica una relación positiva y estadísticamente significativa. El coeficiente de 146.36 sugiere que por cada litro adicional de agua consumido, se queman en promedio 146.36 calorías más.
+
+Sin embargo, el R² ajustado de 0.1077 indica que solo alrededor del 10.77% de la variabilidad en las calorías quemadas es explicada por el consumo de agua, lo que sugiere que otros factores no incluidos en el modelo influyen considerablemente en el gasto calórico. Aun así, la significancia estadística (p < 2e-16) confirma la relaccion entre estas dos variables.
+
+### ANOVA
+
+```{r}
+# Ajustar el modelo de regresión lineal
+modelo2 <- lm(calories_burned ~ water_intake, data = datos)
+
+# Obtener y mostrar la tabla ANOVA
+tabla_anova <- anova(modelo2)
+cat("Tabla ANOVA:\n")
+print(tabla_anova)
+
+```
+La tabla ANOVA muestra que el consumo de agua tiene un impacto significativo en las calorías quemadas. El valor F de 83.444 y el valor p extremadamente bajo (menor que 0.001) indican que el modelo es altamente confiable y que el consumo de agua explica de manera importante las variaciones en las calorías quemadas. En resumen, se puede concluir que existe una relación estadísticamente significativa entre el agua que consumes y las calorías que quemas.
+
+
+
+
+## 3.1 Análisis de Residuos
+
+## **Predicción de Calorías Quemadas**  
+
+Realizamos el análisis de residuos para evaluar el modelo ajustado.
+
+### Residuos vs Valores Ajustados
+
+```{r}
+# Obtener los residuos
+residuos <- resid(model1)
+valores_ajustados <- fitted(model1)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+Podemos observar que los residuos se distribuyen de manera aleatoria alrededor del eje, sin mostrar patrones claros, por lo que el supuesto de linealidad se cumple. 
+
+
+
+### Histograma de los Residuos
+```{r}
+# Graficar histograma de los residuos
+hist(residuos,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+Podemos observar que nuestra distribución se acerca a una distribucion normal con un ligero desplazamiento a la izquierda. 
+
+
+
+### QQ-Plot de los Residuos
+
+
+```{r}
+
+# Graficar QQ-plot de los residuos
+qqnorm(residuos, main = "QQ-Plot de los Residuos")
+qqline(residuos, col = "red", lwd = 2) 
+
+```
+podemos observar que los puntos se alinean con la linea roja diagonal, por lo que podemos deducir que siguen una distribución normal y concuerda con lo esperado.
+
+
+
+### Prueba de Normalidad de los Residuos (Shapiro-Wilk)
+
+```{r}
+# Realizar la prueba de Shapiro-Wilk para normalidad de los residuos
+
+shapiro_test <- shapiro.test(residuos)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+
+```
+Observamos que el p-valor obtenido es menor que 0.05, por lo que rechazaríamos la Hipótesis nula.
+
+
+
+## **Impacto de la Hidratación en el gasto de calorías.**
+
+
+### Residuos vs Valores Ajustados
+
+```{r}
+# Obtener los residuos
+residuos2 <- resid(modelo2)
+valores_ajustados <- fitted(modelo2)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados (Calorías Quemadas)",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+En esta gráfica podemos observar que los residuos se distribuyen de manera aleatoria alrededor del eje horizontal, sin mostrar patrones claros, lo que sugiere que el modelo es adecuado y el supuesto de linealidad se cumple.
+
+### Histograma Residuos
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos2,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+El histograma muestra que la distribución de los residuos se aproxima a una distribución normal, aunque con un ligero desplazamiento hacia la derecha Esto indica que los residuos están casi normalmente distribuidos, lo que es un buen indicio de que el modelo se ajusta bien a los datos.
+
+### QQ-plot Residuos
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos2, main = "QQ-Plot de los Residuos")
+qqline(residuos2, col = "red", lwd = 2) 
+
+```
+En el QQ-plot, podemos observar que los puntos se alinean con la línea roja diagonal, lo que sugiere que los residuos siguen una distribución normal. Esto concuerda con lo que esperamos para un buen modelo de regresión.
+
+
+### Prueba de Normalidad de los Residuos (Shapiro-Wilk)
+
+```{r}
+# Realizar la prueba de Shapiro-Wilk para normalidad de los residuos
+shapiro_test <- shapiro.test(residuos2)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+
+```
+La prueba de Shapiro-Wilk para los residuos muestra un valor de W cercano a 1, lo que sugiere que los residuos están bastante cerca de seguir una distribución normal. Sin embargo, el p-valor es menor a 0.05, lo que indica que debemos rechazar la hipótesis de que los residuos siguen una distribución normal perfecta. Esto significa que, aunque los residuos se aproximan a una distribución normal, hay algunas pequeñas desviaciones.
+
+
+
+
+## 3.2 Diagnóstico del Modelo: Pruebas de Homocedasticidad y Leverage
+
+## **Predicción de Calorías Quemadas**
+
+### Prueba de Homocedasticidad (Breusch-Pagan)
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(model1)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+
+```
+La prueba de Breusch-Pagan muestra un valor p muy pequeño (< 2.2e-16), lo que indica que hay heterocedasticidad en el modelo. Esto significa que los errores del modelo no tienen una varianza constante, lo que puede afectar la precisión de los resultados. En términos más simples, la relación entre las variables puede cambiar dependiendo de ciertos factores, como la experiencia en el gimnasio o características físicas de los usuarios. Para corregir esto, se pueden hacer algunos ajustes, como transformar los datos, usar otro tipo de regresión o aplicar correcciones estadísticas para mejorar la fiabilidad del análisis.
+
+
+### Análisis de Leverage 
+
+Calculamos el leverage de las observaciones y graficamos las observaciones con leverage alto.
+
+```{r}
+# Calcular leverage
+leverage <- hatvalues(model1)
+
+# Umbral para leverage alto
+n <- nrow(train)
+p <- length(coef(train))  # Número de parámetros (incluyendo el intercepto)
+leverage_threshold <- 2 * p / n
+
+# Identificar observaciones con leverage alto
+leverage_high <- which(leverage > leverage_threshold)
+
+cat("\nUmbral para leverage alto:", leverage_threshold, "\n")
+cat("\nObservaciones con leverage alto (si las hay):\n")
+print(leverage_high)
+
+# Gráfico de leverage
+grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y = leverage)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = leverage_threshold, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Leverage de las Observaciones", x = "Índice de Observación", y = "Leverage")
+
+# Mostrar gráfico
+grafico_leverage
+```
+
+El gráfico de leverage muestra la influencia de cada observación en los coeficientes del modelo. Observaciones con leverage alto (por encima del umbral) tienen un gran efecto en el ajuste del modelo.
+El gráfico de leverage muestra que la mayoría de las observaciones tienen un leverage bajo, lo que indica que no influyen demasiado en el ajuste del modelo. Sin embargo, hay una dispersión uniforme de puntos a ambos lados de la línea roja discontinua en niveles más altos de leverage. Esto sugiere que algunas observaciones tienen un mayor impacto en los coeficientes del modelo y podrían ser casos atípicos o influyentes. Es importante analizar estos puntos para determinar si afectan negativamente la estabilidad del modelo y, si es necesario, considerar ajustes o métodos robustos.
+
+
+### Análisis de la Distancia de Cook
+
+ mide la influencia de cada observación sobre los coeficientes del modelo.
+
+```{r}
+# Calcular Distancia de Cook
+cooks_distance <- cooks.distance(model1)
+
+# Gráfico de Distancia de Cook
+grafico_cooks_distance <- ggplot(data.frame(cooks_distance), aes(x = seq_along(cooks_distance), y = cooks_distance)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 4 / n, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Distancia de Cook", x = "Índice de Observación", y = "Distancia de Cook")
+
+# Mostrar gráfico
+grafico_cooks_distance
+
+```
+
+La distancia de Cook mide la influencia de cada observación sobre los coeficientes del modelo. Observaciones con una distancia de Cook alta (por encima del umbral) pueden ser altamente influyentes. En el gráfico, hay algunas observaciones con distancia de Cook alta, lo que indica que estas observaciones pueden estar afectando de manera desproporcionada el ajuste del modelo
+Podemos observar que la mayoría de las observaciones tienen una influencia baja en el modelo, ya que están acumuladas en la parte inferior, cerca de la línea roja. Sin embargo, hay algunas observaciones con una distancia de Cook alta, lo que indica que pueden estar afectando de manera significativa el ajuste del modelo. Estos puntos atípicos podrían estar influyendo de manera desproporcionada en los coeficientes, por lo que sería recomendable revisarlos para determinar si representan datos válidos o si es necesario aplicar ajustes para mejorar la estabilidad del modelo.
+
+
+## **Impacto del Nivel de Hidratación en el Gasto Calórico**
+
+### Prueba de Homocedasticidad (Breusch-Pagan)
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo2)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+
+```
+La prueba de Breusch-Pagan muestra un valor p de 7.191e-10, que es muy pequeño. Esto indica que existe heterocedasticidad en el modelo, es decir, los errores no tienen una varianza constante. En otras palabras, el comportamiento de las calorías quemadas no es igual para todos los niveles de consumo de agua, lo que puede influir en la precisión de las predicciones. 
+
+### Análisis de Leverage
+
+```{r}
+# Calcular leverage
+leverage <- hatvalues(modelo2)
+
+# Umbral para leverage alto
+n <- nrow(train)
+p <- length(coef(modelo2))  # Número de parámetros (incluyendo el intercepto)
+leverage_threshold <- 2 * p / n
+
+# Identificar observaciones con leverage alto
+leverage_high <- which(leverage > leverage_threshold)
+
+cat("\nUmbral para leverage alto:", leverage_threshold, "\n")
+cat("\nObservaciones con leverage alto (si las hay):\n")
+print(leverage_high)
+
+# Gráfico de leverage
+grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y = leverage)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = leverage_threshold, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Leverage de las Observaciones", x = "Índice de Observación", y = "Leverage")
+
+# Mostrar gráfico
+grafico_leverage
+# Calcular leverage
+leverage <- hatvalues(modelo2)
+
+# Umbral para leverage alto
+n <- nrow(train)
+p <- length(coef(modelo2))  # Número de parámetros (incluyendo el intercepto)
+leverage_threshold <- 2 * p / n
+
+# Identificar observaciones con leverage alto
+leverage_high <- which(leverage > leverage_threshold)
+
+cat("\nUmbral para leverage alto:", leverage_threshold, "\n")
+cat("\nObservaciones con leverage alto (si las hay):\n")
+print(leverage_high)
+
+# Gráfico de leverage
+grafico_leverage <- ggplot(data.frame(leverage), aes(x = seq_along(leverage), y = leverage)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = leverage_threshold, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Leverage de las Observaciones", x = "Índice de Observación", y = "Leverage")
+
+# Mostrar gráfico
+grafico_leverage
+
+```
+
+El umbral para identificar observaciones con leverage alto es 0.0058. Las observaciones que superan este umbral tienen un gran impacto en el ajuste del modelo.
+
+
+### Análisis de la Distancia de Cook
+
+```{r}
+# Calcular Distancia de Cook
+cooks_distance <- cooks.distance(modelo2)
+
+# Gráfico de Distancia de Cook
+grafico_cooks_distance <- ggplot(data.frame(cooks_distance), aes(x = seq_along(cooks_distance), y = cooks_distance)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 4 / n, col = "red", lwd = 2, lty = 2) +
+  labs(title = "Distancia de Cook", x = "Índice de Observación", y = "Distancia de Cook")
+
+# Mostrar gráfico
+grafico_cooks_distance
+
+```
+
+La distancia de Cook mide la influencia de cada observación sobre los coeficientes del modelo de calorías quemadas en función del consumo de agua. Observaciones con una distancia de Cook alta (por encima del umbral) pueden estar influyendo significativamente en los resultados. En el gráfico, la mayoría de las observaciones tienen una baja influencia, ya que están cerca de la línea roja. Sin embargo, algunas observaciones tienen una distancia de Cook más alta, lo que indica que podrían estar afectando de manera significativa el ajuste del modelo.
+
+
+## 3.3 Análisis de DFFITS
+
+## **Predicción de Calorías Quemadas**
+
+mide el cambio en los valores ajustados cuando se omite una observación.
+
+```{r}
+# Calcular DFFITS
+dffits_values <- dffits(model1)
+
+# Gráfico de DFFITS
+grafico_dffits <- ggplot(data.frame(dffits_values), aes(x = seq_along(dffits_values), y = dffits_values)) +
+  geom_point(color = "green") +
+  geom_hline(yintercept = c(2 * sqrt(length(coef(model1)) / n)), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFFITS", x = "Índice de Observación", y = "DFFITS")
+
+# Mostrar gráfico
+grafico_dffits
+
+```
+
+El gráfico de DFFITS muestra que la mayoría de las observaciones tienen poca influencia en el modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, hay algunas observaciones que superan este umbral, lo que indica que pueden estar afectando significativamente los valores ajustados. Estas observaciones deberían revisarse para determinar si representan datos válidos o si están distorsionando el modelo, ya que podrían influir en la precisión de las predicciones
+
+##  **Impacto del Nivel de Hidratación en el Gasto Calórico**
+
+
+```{r}
+# Calcular DFFITS
+dffits_values <- dffits(modelo2)
+
+# Gráfico de DFFITS
+grafico_dffits <- ggplot(data.frame(dffits_values), aes(x = seq_along(dffits_values), y = dffits_values)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = c(2 * sqrt(length(coef(modelo2)) / n)), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFFITS", x = "Índice de Observación", y = "DFFITS")
+
+# Mostrar gráfico
+grafico_dffits
+
+```
+
+
+## 3.4 Análisis de DFBETAS
+
+nos indican la influencia de cada observación sobre cada coeficiente de la regresión.
+
+##  **Predicción de Calorías Quemadas** 
+
+```{r}
+# Calcular DFBETAS# Calcular DFBETAS
+dfbetas_values <- dfbetas(model1)
+
+# Convertir dfbetas_values a un data.frame para poder usarlo en ggplot
+dfbetas_df <- as.data.frame(dfbetas_values)
+
+# Graficar DFBETAS para el coeficiente de la pendiente (segunda columna si existe)
+grafico_dfbetas <- ggplot(dfbetas_df, aes(x = seq_along(dfbetas_df[,2]), y = dfbetas_df[,2])) + # Usamos el coeficiente de la pendiente
+  geom_point(color = "purple") +
+  geom_hline(yintercept = 2 / sqrt(n), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFBETAS para el Coeficiente de la Pendiente", x = "Índice de Observación", y = "DFBETAS")
+
+# Mostrar gráfico
+grafico_dfbetas
+
+
+```
+El gráfico de DFBETAS muestra que la mayoría de las observaciones tienen poca influencia en los coeficientes del modelo, ya que están acumuladas alrededor de cero y dentro del rango de ±0.1, sin sobrepasar la línea roja. Sin embargo, algunas observaciones superan este umbral, lo que indica que pueden estar afectando de manera significativa los coeficientes de regresión. Es importante revisar estos puntos para determinar si están influyendo de manera desproporcionada en el modelo y, si es necesario, considerar ajustes para mejorar su estabilidad.
+
+
+## **Impacto del Nivel de Hidratación en el Gasto Calórico**  
+
+
+```{r}
+# Calcular DFBETAS# Calcular DFBETAS
+dfbetas_values <- dfbetas(modelo2)
+
+# Convertir dfbetas_values a un data.frame para poder usarlo en ggplot
+dfbetas_df <- as.data.frame(dfbetas_values)
+
+# Graficar DFBETAS para el coeficiente de la pendiente (segunda columna si existe)
+grafico_dfbetas <- ggplot(dfbetas_df, aes(x = seq_along(dfbetas_df[,2]), y = dfbetas_df[,2])) + # Usamos el coeficiente de la pendiente
+  geom_point(color = "purple") +
+  geom_hline(yintercept = 2 / sqrt(n), col = "red", lwd = 2, lty = 2) +
+  labs(title = "DFBETAS para el Coeficiente de la Pendiente", x = "Índice de Observación", y = "DFBETAS")
+
+# Mostrar gráfico
+grafico_dfbetas
+
+
+```
+
+
+
+# 4. Seleccion de variables
+
+##  **Predicción de Calorías Quemadas**
+
+### Método Forward
+
+```{r}
+# Modelo vacío (sin variables)
+modelo_vacio <- lm(Calories_Burned ~ 1, data = train)
+
+# Selección hacia adelante (Forward Selection)
+modelo_forward <- step(modelo_vacio, 
+                       scope = ~ Age + Gender + Weight + Height +Max_BPM+ Avg_BPM + Resting_BPM + 
+                                Session_Duration + Workout_Type +Fat_Percentage +Water_Intake + BMI + Workout_Frequency+ Experience_Level, 
+                       direction = "forward")
+
+# Ver resumen del modelo seleccionado
+summary(modelo_forward)
+
+```
+
+El modelo final tras usar el método forward incluye las siguientes variables: Session_Duration, Avg_BPM, Gender, Age, Resting_BPM, y Workout_Type
+
+Resultados:
+R²: 0.979 esto indica que el modelo explica aproximadamente el 97.9% de la variabilidad en las calorías quemadas.
+AIC: 5025.39, que es un valor bastante bajo, lo que sugiere un buen ajuste del modelo.
+Coeficientes:
+Session_Duration tiene un coeficiente positivo y significativo, lo que indica que a mayor duración de la sesión, mayor cantidad de calorías quemadas.
+Avg_BPM y Gender también son muy significativos, tienen bastante impacto en la cantidad de calorías quemadas.
+Age tiene un coeficiente negativo, lo que sugiere que, a medida que la edad aumenta, las calorías quemadas tienden a disminuir, aunque en una magnitud pequeña.
+Resting_BPM tiene un coeficiente positivo, indicando que a mayor BPM en reposo, mayor número de calorías quemadas.
+Workout_Type tiene un coeficiente negativo, pero no es muy diferente de cero (p > 0.05), lo que puede indicar que no es una variable determinante en este caso.
+
+### Método Backward
+
+```{r}
+# Ajustamos el modelo inicial con todas las variables
+modelo_inicial <- lm(Calories_Burned ~ Age + Gender + Weight + Height +Max_BPM+ Avg_BPM + Resting_BPM + 
+                                Session_Duration + Workout_Type +Fat_Percentage +Water_Intake + BMI + Workout_Frequency+ Experience_Level,  data = train)
+
+# Aplicamos el método backward para la eliminación de variables
+modelo_backward <- step(modelo_inicial, direction = "backward", trace = 1)
+
+# Mostrar resumen del modelo final después de la selección
+summary(modelo_backward)
+
+
+```
+
+El modelo final, después de aplicar el método backward, utiliza las siguientes variables:
+Age, Gender, Avg_BPM, Session_Duration ya que tienen coeficientes significativos con valores p menores a 0.05, lo que indica que estas variables tienen un impacto relevante sobre Calories_Burned.
+
+Se han eliminaron variables como Max_BPM, water_intake, fat_percentage,  workout_frecuency y experience_level debido a su baja contribución al modelo. El R² de 0.9792 indica que el modelo explica el 97.92% de la variabilidad en las calorías quemadas. El error estándar residual de 39.12 sugiere que el modelo tiene una variabilidad de aproximadamente 39.12 calorías en las predicciones.Estadística F de 3523 con un p-valor muy pequeño (menor a 2e-16), lo que indica que el modelo en su conjunto es altamente significativo. Aunque el modelo es preciso, variables como workout_type no son del todo significativas y podrían eliminarse para mejorar el modelo.
+
+### Método Stepwise
+
+```{r}
+
+# Modelo completo: Usamos todas las variables
+modelo_completo <- lm(Calories_Burned ~ ., data = train)
+
+# Aplicar el método Stepwise (tanto Forward como Backward)
+modelo_stepwise <- step(modelo_completo, direction = "both", trace = 1)
+
+# Ver el resumen del modelo ajustado
+summary(modelo_stepwise)
+
+
+
+```
+El modelo tiene un R² de 0.9792, lo que indica que explica el 97.92% de la variabilidad en las calorías quemadas, lo cual podemos considerar un buen ajuste. El error residual estándar es de 39.12, por tanto las predicciones del modelo tienen un error promedio de 39.12 calorías. El estadístico F es 3523 con un p-valor muy bajo lo que indica que el modelo en su conjunto es altamente significativo. Se han eliminado variables como Max_BPM, Water_Intake, Fat_Percentage y Experience_Level, al no mejorar el ajuste del modelo. Las variables más influyentes son Age, Gender, Avg_BPM y Session_Duration, con un impacto directo en las calorías quemadas.
+
+
+### método lasso
+
+```{r}
+train$Gender <- as.numeric(as.factor(train$Gender))
+train$Workout_Type <- as.numeric(as.factor(train$Workout_Type))
+
+# ---- 1. Preparar los datos ----
+# Separar variables predictoras (X) y la variable objetivo (y)
+X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])  # Matriz de predictores
+y <- train$Calories_Burned  # Variable objetivo
+
+# ---- 2. Ajustar modelo Lasso ----
+set.seed(123)  # Fijar semilla para reproducibilidad
+modelo_lasso <- cv.glmnet(X, y, alpha = 1,  # Lasso (alpha = 1)
+                          nfolds = 10,  # Validación cruzada 10-fold
+                          type.measure = "mse")  # Minimizar el error cuadrático medio
+
+# ---- 3. Obtener la mejor lambda ----
+lambda_opt <- modelo_lasso$lambda.min
+cat("Mejor lambda:", lambda_opt, "\n")
+
+# ---- 4. Hacer predicciones ----
+y_pred <- predict(modelo_lasso, s = lambda_opt, newx = X)
+
+# ---- 5. Evaluación del modelo ----
+mse <- mean((y - y_pred)^2)  # Error cuadrático medio
+rmse <- sqrt(mse)  # Raíz del error cuadrático medio
+r2 <- cor(y, y_pred)^2  # Coeficiente de determinación
+
+cat("MSE:", mse, "\n")
+cat("RMSE:", rmse, "\n")
+cat("R²:", r2, "\n")
+
+# ---- 6. Ver coeficientes seleccionados por Lasso ----
+coeficientes <- coef(modelo_lasso, s = lambda_opt)
+print(coeficientes)
+
+
+```
+
+### Ridge
+
+```{r}
+# Preparar los datos
+# Crear la matriz de características X (sin la variable dependiente)
+X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])
+
+# Crear el vector de la variable dependiente Y
+y <- train$Calories_Burned
+
+# Ajustar el modelo Ridge con validación cruzada (alpha = 0)
+modelo_ridge <- cv.glmnet(X, y, alpha = 0)
+
+# Ver el valor óptimo de lambda
+cat("Mejor lambda:", modelo_ridge$lambda.min, "\n")
+
+# Resumen del modelo
+summary(modelo_ridge)
+
+# Graficar la curva de validación cruzada
+plot(modelo_ridge)
+
+# Hacer predicciones con el valor óptimo de lambda
+y_pred_ridge <- predict(modelo_ridge, s = "lambda.min", newx = X)
+
+# Calcular el MSE (Error Cuadrático Medio)
+mse_ridge <- mean((y - y_pred_ridge)^2)
+cat("MSE del modelo Ridge:", mse_ridge, "\n")
+
+# Calcular el RMSE (Raíz del Error Cuadrático Medio)
+rmse_ridge <- sqrt(mse_ridge)
+cat("RMSE del modelo Ridge:", rmse_ridge, "\n")
+
+# Calcular el R² (Coeficiente de Determinación)
+r2_ridge <- 1 - sum((y - y_pred_ridge)^2) / sum((y - mean(y))^2)
+cat("R² del modelo Ridge:", r2_ridge, "\n")
+```
+
+### elastic_net
+ 
+```{r}
+# Preparar los datos
+X <- as.matrix(train[, -which(names(train) == "Calories_Burned")])
+y <- train$Calories_Burned
+
+# Ajustar el modelo Elastic Net
+# alpha = 0.5 es una mezcla equilibrada entre Ridge y Lasso
+modelo_elastic_net <- cv.glmnet(X, y, alpha = 0.5)
+
+# Ver el mejor valor de lambda
+cat("Mejor lambda para Elastic Net:", modelo_elastic_net$lambda.min, "\n")
+
+# Resumen del modelo
+summary(modelo_elastic_net)
+
+# Hacer predicciones con el valor óptimo de lambda
+y_pred_elastic_net <- predict(modelo_elastic_net, s = "lambda.min", newx = X)
+
+# Calcular el MSE (Error Cuadrático Medio)
+mse_elastic_net <- mean((y - y_pred_elastic_net)^2)
+cat("MSE del modelo Elastic Net:", mse_elastic_net, "\n")
+
+# Calcular el RMSE (Raíz del Error Cuadrático Medio)
+rmse_elastic_net <- sqrt(mse_elastic_net)
+cat("RMSE del modelo Elastic Net:", rmse_elastic_net, "\n")
+
+# Calcular el R² (Coeficiente de Determinación)
+r2_elastic_net <- 1 - sum((y - y_pred_elastic_net)^2) / sum((y - mean(y))^2)
+cat("R² del modelo Elastic Net:", r2_elastic_net, "\n")
+
+```
+
+### comparacion de los tres modelo 
+
+Elastic Net tiene un R² de 0.979 y un RMSE de 38.98. Este modelo muestra un buen ajuste a los datos, con el 97.9% de la variabilidad en las calorías quemadas. La combinación de penalizaciones de Ridge y Lasso le permite manejar bien tanto la multicolinealidad como realizar una selección de variables. Aunque su MSE es de 1519.821, este valor se encuentra dentro de un rango razonable.
+
+Ridge, por su parte, tiene un R² de 0.9676 y un RMSE de 48.42, lo que indica que aunque el modelo también tiene un buen ajuste, no es tan preciso como Elastic Net en términos de predicción.Su MSE es de 2344.048, es decir, más alto en comparación con los otros dos modelos.
+
+Lasso es bastante similar al modelo Elastic Net, con un R² de 0.979 y un RMSE de 38.98. Al igual que Elastic Net, Lasso ha realizado una selección de variables, eliminando aquellas que no aportan significativamente a la predicción en nuestro caso Gender, Max_BPM, Workout_Type, Water_Intake, Experience_Level.
+
+Como observamos en el modelo Elastic Net tenemos un lambda de 1.046946 que indica que el modelo ha encontrado un equilibrio adecuado entre la penalización y el ajuste a los datos. se ha mantenido el R^2 en 0.979 sin embargo hemos conseguido un MSE de 1519.821 lo que es bastante razonable. El RMSE de 38.98 lo que significa que nuestros datos se desplazan aproximadamente 38.98 de los valores reales que en comparacion con el anterior hemos conseguido bajar.
+
+### Tabla comparativa de todos los modelos 
+
+```{r}
+# Crear una tabla comparativa 
+comparativa_modelos <- data.frame(
+  Modelo = c("Elastic Net", "Ridge", "Lasso", "Forward Selection", "Backward Selection"),
+  R2 = c(0.979, 0.9676, 0.979, 0.979, 0.9792),
+  RMSE = c(38.98, 48.42, 38.98, 39.12, 39.12),
+  MSE = c(1519.82, 2344.048, 1519.82, 1524.98, 1524.98),
+  Lambda = c(1.046946, NA, NA, NA, NA)
+)
+
+# Mostrar la tabla comparativa
+print(comparativa_modelos)
+
+```
+
+Tras comparar los distintos modelos de regresión, observamos que Elastic Net y Lasso ofrecenla mayor efectividad con un R² de 0.979 y un RMSE de 38.98, lo que sugiere una alta capacidad para explicar la variabilidad en las calorías quemadas con un error relativamente bajo. Ridge, por otro lado, presenta un R² menor (0.9676) y un RMSE mayor (48.42), lo que indica que es menos preciso en sus predicciones. Los modelos de selección de variables (Forward, Backward y Stepwise) también tienen un buen ajuste (R² = 0.979), pero al depender de la selección manual de variables pueden no manejar bien la multicolinealidad.
+
+Al analizar los distintos métodos vemos que las variables más eliminadas son  Max_BPM, Water_Intake, Fat_Percentage y Experience_Leve lo que indica que variables que no nos dan una  información relevante. Session_Duration, Avg_BPM, Gender y Age aparecen constantemente, lo que nos confirma su importancia en la predicción. En particular, Session_Duration y Avg_BPM destacan como los factores más determinantes, ya que el tiempo de entrenamiento y la intensidad del esfuerzo medido en BPM tienen una relación directa con la quema de calorías.
+
+
+
+### Mención sobre Water Intake y Predicción de Calorías Quemadas:
+
+Al analizar las variables involucradas en la predicción de Calories Burned, observamos que Water Intake no tiene una relación tan significativa con las calorías quemadas, en comparación con otras variables como Session Duration, Avg_BPM, y Age. Aunque la hidratación puede tener cierto impacto en el rendimiento físico, su influencia directa sobre el gasto calórico no parece ser tan pronunciada en este caso.
+
+Dado que Water Intake no mostró una relación clara y significativa con la variable objetivo, decidimos enfocarnos principalmente en aquellas variables que tienen un impacto más evidente en la predicción de las calorías quemadas. Esto nos permitió simplificar el modelo y mejorar la precisión de las predicciones al centrarnos en los factores más determinantes, como el tiempo de la sesión y la intensidad del esfuerzo (medido por Avg_BPM), entre otros.
+
+
+# 5. Modelo de regresión lineal multiple.
+
+Tras haber visto la matriz de correlación de las variables y haber hecho la selección de variables, vamos a ver cual es el mejor modelo multiple para poder predecir nuestra varible, primero vamos a ver el modelo con la matriz de correlación.
+
+```{r}
+modelo_multiple <- lm(Calories_Burned ~ Session_Duration + Fat_Percentage + Water_Intake + Experience_Level + Avg_BPM + Age, data = train)
+summary(modelo_multiple)
+```
+Seleccionando las varibles que tiene más de |0.4| de relación con nuestra bariable objetivo, tenemos un modelo con un R2 multiple de 0.967 y uno ajustado de 0.9667, que está muy bien ya que nos dice que nuestro modelo es bastante bueno. Ahora vamos a ver como se ven los residuos del modelo y los vamos a nalizar.
+
+```{r}
+# Obtener los residuos
+residuos_multiple <- resid(modelo_multiple)
+valores_ajustados <- fitted(modelo_multiple)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_multiple,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+Al ver los residuos contra los varlores ajustados, podemos ver como no hay una varianza constante, ya que el empezar varía poco respecto a la parte derecha del gráfico.
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_multiple,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+```
+
+Viendo este gráfico a simple vista, podemos deducir que nos acercamos a una distribución normal.
+
+```{r}
+qqnorm(residuos_multiple, main = "QQ-Plot de los Residuos")
+qqline(residuos_multiple, col = "red", lwd = 2) 
+```
+
+Vemos con el qqplot que los residuos se acercan mucho a la linea roja, y que a sus extremos se van separando, por lo que podemos deducir que estos residuos, del modelo multiple, pueden seguir una distribución normal. Vamos a hacer la prueba de Shapiro-Wilk para ver si podemos rechazar que nuestros datos son normales.
+
+```{r}
+shapiro_test <- shapiro.test(residuos_multiple)
+print(shapiro_test)
+```
+
+Como vemos, tenemos un p-valor de más de 0.05 lo que nos indica que podemos rechazar la hipótesis de normalidad de nuestros residuos. Ahora vamos a hacer la prueba de homocedasticidad.
+
+```{r}
+bptest_result <- bptest(modelo_multiple)
+print(bptest_result)
+```
+
+Vemos que tenemos un p-valor demasiado pequeño, lo nos indica heterocedasticidad en nuestro odelo, esto nos da la información de que no tenemos un modelo con una varianza constante, como hemos visto antes, afectando así a la precisión de los residuos. Para esto vamos a hacer unos ajustes de transformación de variables usando boxcox y el logaritmo a la variable objetivo para ver si esto mejora.
+
+Ahora vamos a analizar el modelo que se ha creado mediante la selección de variables. Par ello hemos elegido el modelo creado mediante el metodo forward y el modelo creado por el metodo stepwise. Primero vamos a ver el modelo del metodo forward.
+
+```{r}
+summary(modelo_forward)
+```
+
+Como ya hemos visto antes tenemos un R2 incluso mejor que el modelo multiple creado con la matriz de correlación, vemos que es practicamente 0.979 que es bastante precisión. Ahora vamos a ver los residuos del modelo y los vamos a analizar.
+
+```{r}
+# Obtener los residuos
+residuos_fordward <- resid(modelo_forward)
+valores_ajustados <- fitted(modelo_forward)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_fordward,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+Vemos como se distribullen de una manera aleatoria por la gráfica, además de eso, vemos como más que con una recta se podría aprocimar más con una parábola, lo que nos podría dar a entender que los residuos siguen una función polinómica de grado 2. Ahora vamos a ver que distribución siguen.
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_fordward,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+```
+
+Podemos ver que siguen una distribución bastante normal con media 0 y ligeramente desplazado hacia la izquierda.
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_fordward, main = "QQ-Plot de los Residuos")
+qqline(residuos_fordward, col = "red", lwd = 2) 
+
+```
+En el qqplot, vemos que en la parte central los residuos de asemejan mucho a la linea, sin embargo, también se ve que tirando a las colas estos residuos tienen mucha más variabilidad. Ahora, vamos a hacer la prueba de normalidad de los residuos.
+
+```{r}
+shapiro_test <- shapiro.test(residuos_fordward)
+print(shapiro_test)
+```
+
+Como vemos, tenemos un p-valor que está pro debajo de 0.05, lo nos indica que no podemos rechazar la hipótesis de que nuestros residuos son normales. Ahora vamos a hacer la prueba de homocedasticidad.
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_forward)
+print(bptest_result)
+```
+
+Como vemos, tenemos un p-valor que es por debajo de 0.05, por lo que tenemos un modelo que nos sugiere heterocedasticidad. Despues de ver  el modelo multiple y el creado mediante el método de forward, ahora, vamos a ver el modelo creado por stepwise, primero de todo vamos a ver el modelo.
+
+```{r}
+summary(modelo_stepwise)
+```
+Vemos que este modelo es el más preciso a la hora de predecir las calorias que quema una persona, ya que tenemos un R2 de 0.9791, lo que nos dice que es bastante más preciso. Una vez visto el modelo, vamos a ver los residuos y si siguen una distribución normal.
+
+```{r}
+# Obtener los residuos
+residuos_stepwise <- resid(modelo_stepwise)
+valores_ajustados <- fitted(modelo_stepwise)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_stepwise,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+Estos residuos son bastante parecidos a los vistos con el modelo creado con forward, podemos ver como se distribullen de una forma aleatorioa y que más que una recta, lo que mejor ajusta a los residuos es un polinomio cuadrado, sin embargo, se ve que no hay demasiada variabilidad en el modelo. Viendo esto, vamos a ver si sigue una distribución normal o no.
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_stepwise,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+```
+
+Podemos ver como los residuos pueden seguir una distribución normal con media 0 y se ve que esta ligeramente desplazado hacia la izquierda. Vamos a ver el qqplot para ver como se ajustan los residuos a la recta.
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_stepwise, main = "QQ-Plot de los Residuos")
+qqline(residuos_stepwise, col = "red", lwd = 2) 
+
+```
+
+Como con el modelo creado por el metodo fordward, los residuos en la parte central se ajustan bastante a la recta, sin embargo al irnos a los extremos, tenemos que los residuos se alejan bastante, por lo que podemos deducri que se cumple la normalidad en los residuos. No obstante, vamos a realizar la prueba de normalidad de Shapiro-Wilk para ver si las hipótesisi son ciertas.
+
+```{r}
+shapiro_test <- shapiro.test(residuos_stepwise)
+print(shapiro_test)
+```
+
+Como podemos ver el p-valor es inferior a 0.05, lo nos indica que no se puede descartar la hipótesis de normalidad de nuestros residuos de este modelo. Ahora, vamos a ver la prueba de homocedasticidad del modelo.
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_stepwise)
+cat("\nPrueba de Breusch-Pagan para homocedasticidad:\n")
+print(bptest_result)
+```
+Al igual que el otro, vemos que tenemos un p-valor que es por debajo de 0.05, por lo que el modelo nos sugiere heterocedasticidad.
+
+Habiendo visto estos tres modelos, hemos decidido quedarnos con el últipo, ya que es el modelo que es más preciso, además de tener unos residuos que siguien una distribución normal y porque, aunque la prueba de homocedasticidad está por debajo de 0.05, es la más alta de los tres modelos vistos anteriormente.
+
+# 6. Modelos no lienales y transformación de variables.
+
+Una vez vistos nuestros modelos de lineales simple y multiple, vamos a ver que transformación podemos hacer a nuestra variable objetivo de tal forma que podamos tener una mejor regresión.
+
+## 6.1 Modelo no lineal simple.
+
+En nuestro modelo lineal simple, hemos observado que en el modelo lineal simple hay mucha variablidad entre nuestras variables, podemos ver como al ver hacer la prueba de homocedasticidad vemos que nuestros datos tienen heterocedasticidad, para ello vamos a relizar el cambio a ambas variables por se parado y vamos a ver cual es la que mejor se adapta y nos da una mejor resolución. Primero vamos a ver la transformación de box-cox para ver cual es la transformación de variables que mejor se adapta a nuestro modelo
+
+```{r}
+# Ajuste de un modelo lineal simple
+modelo_bc <- lm(Calories_Burned ~ Session_Duration, train)
+
+# Aplicación de la transformación de Box-Cox
+boxcox(modelo_bc)
+```
+
+Viendo esto tenemos que el valor óptimo de lambda con un 95% de seguridad esta en torno al 0.5, dado que es distinto de 0, la mejor transformación de variables que podemos tener es el logaritmo de la variable Y, en nuestro caso son Calories_Burned. Antes de nada, vamos a ver como se ve gráficamente nuestra variable comparado con antes.
+
+```{r}
+train |> ggplot(aes(x = Session_Duration, y = log(Calories_Burned))) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relación entre Duración del Entrenamiento y Calorías Quemadas",
+       x = "Duración del Entrenamiento (horas)", y = "Calorías Quemadas") +
+  theme_minimal()
+```
+
+A simple vista, podemos ver que gráficamente ha mejorado bastante la variabilidad de nuestros datos, a continuación, vamos a crear el modelo aplicando el logaritmo a nuestra variable objetivo.
+
+```{r}
+model_log <- lm(log(Calories_Burned) ~ Session_Duration, train)
+summary(model_log)
+```
+
+viendo el modelo modificado, podemos ver como el Rcuadrado a aumentado un poco, hemos pasado de un 0.81 a un 0.82, ahora vamos a ver como se ven los residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado. Además de esto, podemos ver que el p-valor del intercepto ha mejorado significativamente, al principio su tenia un p-valor de 0.7 y ahora tenemos un p-valor menor a 2e-16.
+
+```{r}
+# Obtener los residuos
+residuos <- resid(model_log)
+valores_ajustados <- fitted(model_log)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+# Graficar histograma de los residuos
+hist(residuos,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+# Graficar QQ-plot de los residuos
+qqnorm(residuos, main = "QQ-Plot de los Residuos")
+qqline(residuos, col = "red", lwd = 2) 
+
+shapiro_test <- shapiro.test(residuos)
+cat("Prueba de Shapiro-Wilk para normalidad de los residuos:\n")
+print(shapiro_test)
+```
+
+Viendo esto se ve que los residuos no llegan a ser del todo normales, sin embargo, su variabilidad no está tán variada, ahora vamos a hacer la prueba de homocedaticidad.
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(model_log)
+print(bptest_result)
+```
+Como podemos ver el p-valor a aumentado significativamente respecto al modelo original, pasando de un p-vamor muy pequeño a 0.8456, por lo que podemos decir que despues de esta transformación nuestras datos cumplen homocedasticidad diciendonos que la varianza de nuestros residuos presentan una variable constante.
+
+## 6.2 Modelo no lineal multiple
+
+Despues de elegir un modelo, vamos a ver el modelo no lienal multiple con los tres modelos anteriores, para ver como cambian y con cual de esos tre nos quedaríamos. Primero vamos a empezar con el modelo multiple que hemos realizado con la matriz de correlación.
+
+```{r}
+summary(modelo_multiple)
+```
+
+Ahora vamos a ver las distribuciones de cada una para ver que transformaciones se pueden hacer para mejorar el modelo.
+
+```{r}
+variables_seleccionadas <- select_(train, "Calories_Burned", "Session_Duration", "Fat_Percentage", "Water_Intake", "Experience_Level", "Avg_BPM", "Age")
+pairs(variables_seleccionadas)
+```
+
+
+Este era el modelo que menos R2 tenía, sin embargo, hemos visto que los datos tienen bastante heterocedasticidad, por lo que vamos a aplicar la transformación logaritmica para nuestra variable objetivo.
+
+```{r}
+bc <- boxcox(modelo_multiple, lambda = seq(-2, 2, 0.1))
+lambda_optimo_multiple <- bc$x[which.max(bc$y)]
+```
+
+```{r}
+modelo_multiple_bc <- lm(((Calories_Burned^lambda_optimo_multiple - 1)/lambda_optimo_multiple) ~ Session_Duration + Fat_Percentage + Water_Intake + Experience_Level + Avg_BPM + Age, data = train)
+summary(modelo_multiple_bc)
+```
+
+
+Como vemos el R2 de este modelo aplicando la transformación se ha reducido, sin embargo, lo que buscamos es un modelo bueno, por lo que vamos a ver como son nuestros residuos y vamos a hacer la prueba de homocedasticidad para ver si ha mejorado algo nuestros residuos y el modelo.
+
+```{r}
+# Obtener los residuos
+residuos_multiple_bc <- resid(modelo_multiple_bc)
+valores_ajustados <- fitted(modelo_multiple_bc)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_multiple_bc,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_multiple_bc,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_multiple_bc, main = "QQ-Plot de los Residuos")
+qqline(residuos_multiple_bc, col = "red", lwd = 2) 
+
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_multiple_bc)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_multiple_bc)
+print(bptest_result)
+```
+
+Después de realizar varias transformaciones a distintas variables, como el logaritmo y la raíz a nuestra variable objetivo, así como el polinomio de orden 2 a Duración de sesión y a porcentage graso, este el el modelo que mejor nos ha salido, en el como se puede ver, se ve que los residuos han mejorado, sin embargo, al hacer la prueba de homocedasticidad, vemos que incluso el p-valor ha disminuido. Ahora vamos a observar el modelo que se ha hecho mediante el metodo forward.
+
+```{r}
+summary(modelo_forward)
+```
+
+Primero de todo, vamos a ver la relación que se puede ver entre las variables.
+
+```{r}
+variables_seleccionadas <- select_(train, "Calories_Burned", "Session_Duration", "Avg_BPM", "Gender", "Age", "Resting_BPM")
+pairs(variables_seleccionadas)
+```
+
+
+Vamos a realizar la raíz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
+
+```{r}
+modelo_forward_sqrt <- lm(sqrt(Calories_Burned) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM, data = train)
+summary(modelo_forward_sqrt)
+```
+
+```{r}
+# Obtener los residuos
+residuos_forward_sqrt <- resid(modelo_forward_sqrt)
+valores_ajustados <- fitted(modelo_forward_sqrt)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_forward_sqrt,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_forward_sqrt,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_forward_sqrt, main = "QQ-Plot de los Residuos")
+qqline(residuos_forward_sqrt, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_forward_sqrt)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_forward_sqrt)
+print(bptest_result)
+```
+Como acabamos de comprobar, el hacer la raiz cuadrada el modelo del metodo forward, obtenemos más prediccion, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípicos a la izquierda de la gráfica y que según la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitandonos la heterocedasticidad que teníamos al hacer el modelo normal sin ninguna tranformación de variables.Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raíz. Primero buscamos el mejor lambda par nuestra transformación.
+
+```{r}
+bc_forward <- boxcox(modelo_forward, lambda = seq(-2, 2, 0.1))
+lambda_optimo_forward <- bc_forward$x[which.max(bc_forward$y)]
+```
+
+```{r}
+modelo_forward_bc <- lm(((Calories_Burned^lambda_optimo_forward - 1)/lambda_optimo_forward) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM, data = train)
+summary(modelo_forward_bc)
+```
+
+```{r}
+# Obtener los residuos
+residuos_forward_bc <- resid(modelo_forward_bc)
+valores_ajustados <- fitted(modelo_forward_bc)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_forward_bc,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_forward_bc,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_forward_bc, main = "QQ-Plot de los Residuos")
+qqline(residuos_forward_bc, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_forward_bc)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_forward_bc)
+print(bptest_result)
+```
+
+Al hacer el modelo podemos ver como el R2 del modelo incluso ha aumentado hasta 0.982, dándonos un modelo que nos predice aún más. Mirando los residuos, vemos que al igual que con la raíz tenemos valores atípicos en la parte izquierda de la gráfica y al mirar el qqplot, el extremo inferior es lo que más se separa de la recta, mientras que la parte central y el extremo de la derecha se ajustan perfectamente, dándonos a entender que se podría ajustar a una normal, esto se  confirma cuando al hacer la prueba de Shapiro-Wilk nos da un p-valor inferior a 0.05, por tanto no podemos descartar la normalidad de los residuos. Para terminar, al hacer la prueba de homocedasticidad, tenemos que el p-valor es 0.266 lo cual es mayor a 0.05, por lo que también nos hemos quitado la heterocedasticidad con esta transformación de varable. Si nos tenemos que  quedar con alguna, sería la segunda, ya que es más precisa a la hora de predecir nuestra variable objetivo.
+
+Para terminar, vamos a realizar un modelo no lineal con el modelo creado con el metodo stepwise.
+
+```{r}
+summary(modelo_stepwise)
+```
+
+Primero de todo, vamos a ver la relación que se puede ver entre las variables.
+
+```{r}
+variables_seleccionadas <- select_(train, "Calories_Burned", "Session_Duration", "Avg_BPM", "Gender", "Age", "Resting_BPM", "Weight", "Height", "BMI")
+pairs(variables_seleccionadas)
+```
+
+
+Vamos a realizar la raíz cuadrada de nuestra variable obejtivo para ver si al ver los residuos se ajustan mejor a la recta.
+
+```{r}
+modelo_stepwise_sqrt <- lm(sqrt(Calories_Burned) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM + Weight + Height + BMI, data = train)
+summary(modelo_stepwise_sqrt)
+```
+
+```{r}
+# Obtener los residuos
+residuos_stepwise_sqrt <- resid(modelo_stepwise_sqrt)
+valores_ajustados <- fitted(modelo_stepwise_sqrt)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_stepwise_sqrt,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_stepwise_sqrt,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_stepwise_sqrt, main = "QQ-Plot de los Residuos")
+qqline(residuos_stepwise_sqrt, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_stepwise_sqrt)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_stepwise_sqrt)
+print(bptest_result)
+```
+
+Como acabamos de comprobar, el hacer la raíz cuadrada el modelo del metodo forward, obtenemos más predicción, pasando de un 0.979 a un 0.9812 además de eso al ver los residuos, vemos que tenemos unos valores atípicos a la izquierda de la gráfica y que según la prueba de shapiro-Wilk no podemos descartar que los residuos son normales, además tenemos que el p-valor de de la prueba de homocedasticidad nos da 0.72 quitándonos la heterocedasticidad que teníamos al hacer el modelo normal sin ninguna tranformación de variables. Ahora vamos a aplicar la transformación de boxcox para nuestra variable objetivo para ver si mejora a la transformación de la raíz. Primero buscamos el mejor lambda par nuestra transformación.
+
+```{r}
+bc_stepwise <- boxcox(modelo_stepwise, lambda = seq(-2, 2, 0.1))
+lambda_optimo_stepwise <- bc_stepwise$x[which.max(bc_stepwise$y)]
+```
+
+```{r}
+modelo_stepwise_bc <- lm(((Calories_Burned^lambda_optimo_stepwise - 1)/lambda_optimo_stepwise) ~ Session_Duration + Avg_BPM + Gender + Age + Resting_BPM + Weight + Height + BMI, data = train)
+summary(modelo_stepwise_bc)
+```
+
+```{r}
+# Obtener los residuos
+residuos_stepwise_bc <- resid(modelo_stepwise_bc)
+valores_ajustados <- fitted(modelo_stepwise_bc)
+
+# Graficar residuos vs valores ajustados
+plot(valores_ajustados, residuos_stepwise_bc,
+     main = "Residuos vs Valores Ajustados",
+     xlab = "Valores Ajustados",
+     ylab = "Residuos",
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+
+```{r}
+# Graficar histograma de los residuos
+hist(residuos_stepwise_bc,
+     main = "Histograma de Residuos",
+     xlab = "Residuos",
+     col = "lightblue", border = "black")
+
+```
+
+
+```{r}
+# Graficar QQ-plot de los residuos
+qqnorm(residuos_stepwise_bc, main = "QQ-Plot de los Residuos")
+qqline(residuos_stepwise_bc, col = "red", lwd = 2) 
+
+```
+
+
+```{r}
+shapiro_test <- shapiro.test(residuos_stepwise_bc)
+print(shapiro_test)
+```
+
+```{r}
+# Realizar la prueba de Breusch-Pagan para homocedasticidad
+bptest_result <- bptest(modelo_stepwise_bc)
+print(bptest_result)
+```
+
+Teniendo ahora los modelos no lineales realizados con los distintos cambios de variables, podemos ver como con el modelo hecho con el método stepwise, al realizarle la transformación de Box-Cox el R2 del modelo aumenta hasta 0.983, lo que nos da el mayor ajuste de nuestra variable de todos los modelo, por otro lado, se ve como los residuos son más normales que en los otros dos modelos, además de eso el qqplot es bastante similar al modelo anterior, y al hacer el test de Shapiro-Wilk, vemos como no podemos descartar la normalidad de los residuos. Por último vemos una mejora en el test de normalidad, sin embargo, comparado con el modelo con la transformación de la raiz, este tiene un p-valor menor, aunque es más preciso.
+
+# 7. Conclusiones.
+Para finalizar podemos concluir que la cantidad de calorías quemadas se ve influenciada principalmente por la duración del entrenamiento y la frecuencia cardíaca promedio (avg_bpm), lo que nos indica que en sesiones más largas e intensas las calorías quemadas serán mayores. También encontramos una pequeña diferencia entre los distintos géneros, donde los hombres queman ligeramente más calorías en promedio, sin embargo no de forma muy significativa. Además hemos podido comprobar que la hidratación si toma un papel importante en el rendimiento, dando mejores resultados en el entrenamiento, aunque tiene poca influencia directa con la quema de calorías.
+
+
+#4 Modelos de regresión generalizada
+##aplicar regresión logística
+```{r}
+# Crear variable binaria (alto gasto calórico)
+train$type <- ifelse(train$Calories_Burned > 700, 1, 0)
+
+# Ajustar el modelo de regresión logística
+modelo_logistico <- glm(type ~ `Session_Duration` + BMI + Age, 
+                        data = train, 
+                        family = binomial)
+
+# Ver resumen del modelo
+summary(modelo_logistico)
+
+
+```
+El modelo de regresión logística ajustado busca predecir si un usuario quema más de 700 calorías durante una sesión de ejercicio en base a tres variables: duración de la sesión, índice de masa corporal (BMI) y edad. Los resultados nos dicen que la variable más indluyente es la duración de la sesión (Session_Duration), con un coeficiente positivo bastante alto (17.5) y un p-valor menor a 0.001, lo que apunta a una fuerte relación entre sesiones más largas y un mayor gasto calórico. La variable edad también resulta significativa a mayor edad, disminuye levemente la probabilidad de alcanzar un alto gasto calórico. Por otro lado, el BMI no presenta significancia estadística. El modelo tiene un buen ajuste en general, con un decrecimiento notable en la devianza y un AIC bajo (211.52), lo que advierte que los predictores elegidos mejoran considerablemente la capacidad explicativa respecto al modelo sin variables.
+
+
+```{r}
+# Predicciones de probabilidad
+predicciones_prob <- predict(modelo_logistico, type = "response")
+
+# Clasificación con un umbral de 0.5
+predicciones_clase <- ifelse(predicciones_prob > 0.5, "Yes", "No")
+
+# Crear matriz de confusión
+tabla_confusion <- table(Predicted = predicciones_clase, Actual = train$type)
+print(tabla_confusion)
+```
+comprobamos que el modelo acertó 122 veces al decir que era "No" cuando realmente era "No", y acertó 521 veces al decir que era "Sí" cuando realmente era "Sí". Pero también cometió 12 errores al decir "Sí" cuando era "No", y 29 errores al decir "No" cuando era "Sí".
+
+```{r}
+# Calcular precisión
+accuracy <- sum(diag(tabla_confusion)) / sum(tabla_confusion)
+print(paste("Precisión:", round(accuracy, 3)))
+```
+el modelo tiene una precisión de 0.94 la cual es bastante elevada
+
+```{r}
+# Cargar librería para curvas ROC
+library(pROC)
+# Curva ROC
+roc_obj <- roc(train$type, predicciones_prob)
+plot(roc_obj, main = "Curva ROC para Regresión Logística")
+```
+
+La curva ROC muestra que nuestro modelo de regresión logística funciona correctamente. Esta curva nos permite ver qué tan bien el modelo puede distinguir entre quienes queman más de 700 calorías y quienes no. En nuestro caso, la curva se acerca mucho a la esquina superior izquierda,lo que significa que el modelo acierta la mayoría de las veces. Además, el área bajo la curva (AUC) es de 0.94 aprox, lo que indica que el modelo tiene un buen nivel de precisión para predecir los resultados correctamente.
+
+
+```{r}
+# Calcular AUC
+auc_valor <- auc(roc_obj)
+print(paste("AUC:", round(auc_valor, 3)))
+```
+al tener un AUC de 0.98 es decir bastante cercano a 1 podemos decir que tiene una alta capacidad discriminativa, es decir, separa bien entre el no y el si.
+
+
+## regresion poisson
+```{r}
+# Ajustar el modelo de regresión de Poisson
+modelo_poisson <- glm(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM + Fat_Percentage, 
+                      data = train, 
+                      family = poisson)
+
+# Resumen del modelo
+summary(modelo_poisson)
+
+```
+
+Por cada minuto adicional de ejercicio (Session_Duration), las calorías quemadas aumentan en 2.25 veces. Por cada litro extra de agua (Water_Intake), las calorías suben en 1.05 veces. Cada latido adicional por minuto (Avg_BPM) aumenta las calorías en 1.007 veces, y un 1% más de grasa corporal (Fat_Percentage) eleva las calorías en 1.003 veces. 
+
+
+```{r}
+# Interpretación de coeficientes
+exp(coef(modelo_poisson))
+```
+
+```{r}
+# Calcular la relación entre el deviance y los grados de libertad
+deviance <- modelo_poisson$deviance
+grados_libertad <- modelo_poisson$df.residual
+sobredispersion <- deviance / grados_libertad
+
+print(paste("Índice de Sobredispersión:", round(sobredispersion, 2)))
+```
+como tenemos un valor muy elevado vamos a realizar una regresión binomial negativa 
+```{r}
+# Paso 1: Cargar el paquete necesario
+library(MASS)
+
+# Paso 2: Ajustar el modelo de regresión binomial negativa
+modelo_nb <- glm.nb(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM + Fat_Percentage, 
+                    data = train)
+
+# Paso 3: Ver el resumen del modelo binomial negativo
+summary(modelo_nb)
+
+# (Opcional) Paso 4: Comparar AIC del modelo de Poisson vs binomial negativa
+AIC(modelo_poisson, modelo_nb)
+
+```
+diagnóstico de residuos sobre el modelo binomial negativo
+```{r}
+# Gráfico de residuos deviance para evaluar el ajuste
+plot(residuals(modelo_nb, type = "deviance"), main = "Residuos Deviance", ylab = "Residuos", xlab = "Índice")
+abline(h = 0, col = "red")
+```
+no se observan patrones claros aunque si que hay muchos puntos alejados de la línea roja
+
+##modelo gamma
+```{r}
+# Ajuste del modelo Gamma
+modelo_gamma <- glm(calories_burned ~ Session_Duration + Water_Intake + Avg_BPM + Fat_Percentage, family = Gamma(link = "log"), data = train)
+
+# Resumen del modelo
+summary(modelo_gamma)
+```
+
+
+# Otros modelos de regresión: Modelos Aditivos Generalizados (GAMs).
+
+## Modelo por relaciones.
+
+Dado que nuesro objetivo es modelar nuestra variable objetivo Calories_Burned en función de otras variable. Ahora vamos a hacer el modelo y vamos a ver que posibles cosas podemos ver. Primero de todo, vamos a ver el modelo.
+
+```{r}
+modelo_gam <- gam(Calories_Burned ~ s(Age) + Gender + s(Avg_BPM) + s(Session_Duration), data = train, method = "REML")
+summary(modelo_gam)
+```
+
+En este análisis del modelo, hemos utilizado como predictores Age, Gender, Avg_BPM y Session_Duration. Como podemos ver, este modelo utiliza la familia gaussiana como función de enlace identidad, ya que la función objetivo es continua y aproximadamente simétrica, como hemos visto antes. Este modelo nos indica que ser hombre se asocia a un incremento promedio de 86.98 calorías en comparació con la mujer, además de que el efecto es bastante significativo, evidenciando su relevandia para explicar la variable objetivo.
+
+Por otro lado, las variables suavizadas, tenemos que la variable suavizada de Age, tiene un valor edf mayor a 1, lo que nos indica que puede sigerir patrones curvos o no lineales importantes. Sin embargo, las demás variables, tiene un edf practicamente 1, implicando un comportamiento practicamente lineal con la variable objetivo. Sin embargo, todas las variables suavizadas, son altamanete significativas, indicando que susu efectos contribuyen significativamente al modelo.
+
+A parte de las variables, hay otros valores bastante importantes y destacados que hay que resaltar, como el valor de 98.5% de la deviance explicada, lo que nos da a entender que este modelo es capaz de explicar casi toda la variabilidad observada. Por otro lado tenemos el valor -REML de 3376.4, lo que nos ayuda a poder comparar distintos modelo GAM.
+
+Despues de ver nuestro modelo, podemos ver que tenemos distintos valores de edf, el de age, como es mayor a 1, nos indica que una posible relación no lineal, sin embargo en los otros, podemos ver como el valor es practicamente 1 sugiriendonos una relacion linal con estas variables. Por otro lado, si vemos el p-valor de las variables suavizadas, nos damos cuenta de que es bastante pequeño, lo que no siguiere que la relación de cada variable con la variable dependiente es estadísticamente significativa. A continuación, vamos a graficar el modelo para ver los efectos suavizados.
+
+```{r}
+plot(modelo_gam, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+En los gráficos anteriores, podemos observar la función suavizda de las variables Age, Avg_BPM y Session_Duration obtenido del ajuste GAM usando splines cúbicos. Viendo los distintos gráficos para cada variable, podemos resaltar más lo que hemos dicho anteriormente con las variable, tenemos que las variable Avg_BPM y Sessión_Duration, se aproximan a una relación lineal, mientras que Age, presenta distintas curvas en su representación. Ahora, vamos a personalizar el gráfico para mejorar la representación. Ahora vamos a ver como se ven con los residuos.
+
+
+```{r}
+plot(modelo_gam, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+
+A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam <- AIC(modelo_gam)
+print(aic_modelo_gam)
+```
+
+Este valor así no nos dice nada, solo nos lo va a decir una vez que comparemos el modelo con otros para ver cual nos predice mejor y poder valorar el que mejor nos selecciones. Ahora, vamos a ver los residuos de nuestro modelo. Por otro lado, como hemos visto antes, las variables de Avg_BPM y Session_Duration, tienen un valor edf muy cercano a 1, por lo que como se pueden considerar lineales, vamos a hacer otro modelo con esos valores sin suavizar para mejorar la interpretabilidad del modelo.
+
+```{r}
+modelo_gam_lineal <- gam(Calories_Burned ~ s(Age) + Gender + Avg_BPM + Session_Duration, data = train, method = "REML")
+summary(modelo_gam_lineal)
+```
+
+Comparando con el modelo anterior, vemos varias cosas, la primera de todoas es que el R-sq (adj) y la Deviance explained no ha cambiado, por lo que si consideramos linealidad entre esas variables no pasa nada. Por otro lado, el valor de -REML, a aumentado un poco, pasando de tener un valor de 3376.4 a 3378, esta diferencia no es muy grande indicando que ambos modelos son bastante válidos estadísticamente. Por lo que de los dos, vamos a seleccionar este, por su simplicidad y explicabilidad. Ahora vamos a ver como se ve gráficamente.
+
+```{r}
+plot(modelo_gam_lineal, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Despues de hacer el modelo con solamente la variable Age suavizada, obtenemos el gráfico enterior, podemos observar que la relación entre la edad y las calorias quemadas no es lineal. A medida que la edad aumenta desde los 20 hasta los 40 años, la función suavizada presenta pequeñas ondulaciones, indicando variaciones en el efecto de la edad, pero después de los 40 años se aprecia un descenso muy marcado en la respuesta, estabilizándose posteriormente. Esto sugiere que alrededor de los 40 años hay un cambio importante en cómo la edad influye en las calorías quemadas. Además, las líneas de puntos representan los intervalos de confianza, mostrando que la estimación es bastante precisa en la mayor parte del rango de edades. Ahora vamos a observar el mismo gráfico pero con los residuos de la variable.
+
+```{r}
+plot(modelo_gam_lineal, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+Como podemos ver los residuos se ajustan bastante bien a la curva, además de esto podemos ver que hay una concentración en torna al 40 que pasados los 40 años descience a -50. Ajustando mejor el modelo, vamos a ver si el valor de AIC es mejor que el anterior
+
+```{r}
+aic_modelo_gam_lin <- AIC(modelo_gam_lineal)
+print(aic_modelo_gam_lin)
+```
+
+Comparando este valor con el anterior, podemos observar como ha mejorado, no mucho, pero algo mejor es. Despues de esto, vamos a analizar los residuos del modelo y ver si se podría ajustar bien o no.
+
+```{r}
+par(mfrow = c(2, 2))
+gam.check(modelo_gam_lineal)
+```
+
+Primero tenemos el gráfico QQ-plot, el cual nos está comparando los residuos deviance con los varlores teóricos de una distribución normal. La mayoría de los puntos siguen la línea recta, lo que indica que los residuos se distribuyen aproximadamente de forma normal, aunque hay una pequeña desviación en los extremos, típica en muchos modelos.
+
+El segundo gráfico es el de residuos frente a las predicciones lineales, el cuan nos muestra que los residuos se distribuyen de forma relativamente aleatoria alrededor de cero, aunque parece haber una leve forma de “curva”, una ligera heterocedasticidad, lo cual podría deberse a alguna relación no perfectamente modelada, pero no es preocupante en exceso dado el patrón general.
+
+El tercer gráfico es el histograma de los residuos, el cual podemos ver que presenta una forma aproximadamente simétrica, centrada en cero, reforzando la idea principal de que los residuos son razonablemente normales.
+
+Por último, el cuarto gráfico es la respuesta frente a valores ajustados, en el cual se puede apreciar una relación bastante lineal y ajustado, sugiriendo que el modelo percibe bien los valores de la calorias que se queman.
+
+El proceso de ajuste del modelo utilizando el método REML y el optimizador "outer newton" ha sido exitoso, alcanzando la convergencia en tan solo cinco iteraciones, lo cual indica una optimización eficiente y sin dificultades. El rango de gradientes cercano a cero sugiere que se ha llegado a un óptimo real, mientras que la positividad del Hessiano y el rango razonable de los valores propios confirman la estabilidad numérica del ajuste. Además, el hecho de que el rango del modelo sea completo, sin pérdida de parámetros, respalda la correcta especificación del modelo. En cuanto al control del número de bases para el suavizado de la variable Age, los resultados muestran que el número de bases seleccionado ha sido adecuado, dado que el índice k es cercano a 1 y el p-valor es alto, no existiendo evidencia que sugiera la necesidad de incrementar la complejidad del suavizado. En conjunto, esta información respalda que el ajuste del modelo ha sido técnicamente correcto, estable y adecuado para representar las relaciones en los datos.
+
+Viendo que el modelo que solo suaviza la variable Age nos da más ventajas, ahora vamos a ver que modelo no da mejores resultados, el primero es el que ya hemos hecho con REML, pero el segundo utiliza Cross-Validation para encontrar el número óptimo de k para que el modelo se ajuste mejor a los dato.
+
+```{r}
+summary(modelo_gam_lineal)
+```
+```{r}
+modelo_gam_cv <- gam(Calories_Burned ~ s(Age) + Gender + Avg_BPM + Session_Duration, data = train, method = "GCV.Cp")
+summary(modelo_gam_cv)
+```
+ 
+Comparando ambos modelos podemos ver lo siguiente: por un lado, los valores del intercepto y de los coeficientes asociados a Gender, Avg_BPM y Session_Duration son prácticamente iguales en ambos casos. Además, todas estas variables son estadísticamente significativas, ya que presentan p-valores extremadamente bajos, lo que indica que tienen un impacto importante sobre las calorías quemadas. El hecho de que estos efectos sean lineales en ambos modelos y tan similares en magnitud y significación sugiere que su relación con la variable respuesta es estable y bien capturada sin necesidad de suavizarlas.
+
+En cuanto a los efectos suavizados, en ambos modelos únicamente la variable Age ha sido modelada de forma no lineal mediante una función suavizada (s(Age)). Su grado de complejidad (expresado mediante el valor de edf) es similar en ambos casos: 8.466 con el método REML y 8.714 con GCV.Cp. Esto indica que la relación entre Age y Calories_Burned es no lineal y presenta un patrón similar en ambos modelos, independientemente del método de estimación del suavizado.
+
+Además, el valor de R-squared ajustado y la desviación explicada son idénticos (98.5%) en ambos modelos, lo cual indica que el ajuste global es excelente en ambos casos. La ligera diferencia en el valor de edf sugiere que el modelo ajustado mediante GCV ha permitido un poco más de flexibilidad en la relación no lineal de la edad, aunque no parece haber un sobreajuste evidente.
+
+Dado que el objetivo de este trabajo es predecir las calorías quemadas, será interesante comparar gráficamente la forma del suavizado de la edad en ambos modelos y comprobar si esa diferencia en edf aporta alguna mejora en la capacidad predictiva o simplemente refleja una mayor complejidad sin ganancia sustancial.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelo_gam_lineal, main = "Ajuste GAM con REML con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_cv, main = "Ajuste GAM con GCV.Cp con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_lineal, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con REML")
+plot(modelo_gam_cv, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con GCV.Cp")
+```
+
+Con esto podemos ver como se comporta la variable Age en los distinto modelos, la primera columna con el metodo REML y la segunda con GCV.Cp, como poemos apreciar no hay demasiada diferencia entre ambos ráficos, la parte del ajuste se ve que cuando llega a 40 hay una bajada drástica, y vemos que la varianza en cada tramo es prácticamente la misma. Por otro lado, tenemos los residuos que al igual que con los gráficos de arriba, pasa lo msimo, no se aprecian bastantes diferencias entre ambos. Por lo que podemos concluir que en ambos modelos la diferencia en edf no aporta alguna mejorar en la capacidad predctiva.
+
+Viendo esto, hemos dedicidido quedarnos con el modelo hecho por GCV.Cp ya que el valor edf de la variable Age es ligeramente superior permitiendo un poco más de flexibilidad el la relación no lineal que hay entre las variables Calories_Burned y Age, además de esto no parece haber sobreajuste evidente en la variable Age.
+
+## Modelo por Stepwise.
+
+En el modelo de antes lo que hemos hecho ha sido selecciónar las variables según su relación con Calories_Burned y su incorrelación entre ellas. A continuación lo que vamos a hacer es hacer otro moelo para ver si se predice mejor o peor las calorias que se queman utilizando el método de selección de variables de Stepwise. Por lo que primero hacemos el modelo Stepwise y luego seleccionamos esas variables para nuestro modelo.
+
+```{r}
+# Modelo completo: Usamos todas las variables
+modelo_completo <- lm(Calories_Burned ~ . - Calories_Burned_Binary, data = train)
+
+# Aplicar el método Stepwise (tanto Forward como Backward)
+modelo_stepwise <- step(modelo_completo, direction = "both", trace = 1)
+
+# Ver el resumen del modelo ajustado
+summary(modelo_stepwise)
+```
+
+Como podemos ver en el modelo, las variables que han sido seleccionadas son Age, Gender, Weight, Height, Avg_BPM, Resting_BPM, Session_Duration y BMI. Ahora vamos a hacer el modelo GAM con esas variables y vamos a analizarlo como hemos hecho antes.
+
+```{r}
+modelo_gam_step <- gam(Calories_Burned ~ s(Age) + Gender + s(Weight) + s(Height) + s(Avg_BPM) + s(Resting_BPM) + s(Session_Duration) + s(BMI), data = train, method = "REML")
+summary(modelo_gam_step)
+```
+
+El modelo desarrollado para predecir las calorías quemadas (Calories_Burned) combina efectos paramétricos y suavizados, logrando un excelente ajuste (R² ajustado = 0.985, 98.6% de desviación explicada). La variable Gender muestra un efecto paramétrico positivo y altamente significativo: los hombres tienden a quemar más calorías que las mujeres, controlando por el resto de factores.
+
+Entre los efectos suavizados, destaca s(Age) por su relación compleja y no lineal con las calorías quemadas. Variables como s(Avg_BPM), s(Session_Duration), s(Height), s(Resting_BPM) y s(BMI) presentan relaciones casi lineales, mientras que s(Weight) muestra una moderada no linealidad.
+
+El modelo ofrece una base sólida para el análisis, aunque futuras simplificaciones de suavizados podrían mejorar su interpretabilidad y evitar posibles problemas de sobreajuste.
+
+Despues de observar las relaciones casi lineales de algunas de las variables suavizadas, lo que vamos a hacer es representar todas las variables suavizadas para observar si la relación que se puede observar llega a ser lineal o  no.
+
+```{r}
+plot(modelo_gam_step, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Como se puede apreciar en los gráficos, tenemos que la variable Age si que presenta una no lienalidad con la variable objetivo, al igual que la variable Weight. Por otro lado, las variables Height, Avg_BPM, Resting_BPM, Session_Duration y BMI, presentan un ajuste bastante lineal, lo que nos puede dar a entender que suavizar esas funciones solo nos harian tener un modelo más complejo de explicar. Esto se tiene que confirmar con la visisón de sus residuos.
+
+```{r}
+plot(modelo_gam_step, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+Efectivamente, al ver los residuos de las variables suavizadas, podemos ver como encontramos residuos no linelaes en las variables Age y Weight, mientras que en el resto de las varibles podemos ver que se ajustan bastante bien a la recta, resaltando su linealidad. A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam_step <- AIC(modelo_gam_step)
+print(aic_modelo_gam_step)
+```
+
+Podemos ver que este valor de primeras es incluso mejor que el valor AIC que hemos obtenido hacendo el modelo GAM por relaciones de variables, lo que nos puede indicar que este modelo tiene un mejor ajuste y que se podría decir que es mejor que el anterior. Por lo que, ahora vamos a suavizar aquellas variable que presenten no lienalidad, Age y Weight, y vamos a estudiar si el modelo es mejor o no.
+
+```{r}
+modelo_gam_step_lin <- gam(Calories_Burned ~ s(Age) + Gender + s(Weight) + Height + Avg_BPM + Resting_BPM + Session_Duration + BMI, data = train, method = "REML")
+summary(modelo_gam_step_lin)
+```
+El modelo construido para predecir las calorías quemadas (Calories_Burned) combina tanto efectos paramétricos como suavizados, logrando un ajuste sobresaliente (R² ajustado = 0.985, 98.6% de desviación explicada). La variable Gender mantiene un efecto paramétrico positivo y altamente significativo, indicando que los hombres tienden a quemar más calorías que las mujeres, bajo igualdad de condiciones en las demás variables.
+
+En cuanto a los efectos suavizados, s(Age) resalta como una relación compleja y no lineal con la respuesta, mientras que s(Weight) presenta una no linealidad moderada. El resto de variables (Height, Avg_BPM, Resting_BPM, Session_Duration y BMI) se modelan de forma paramétrica, mostrando relaciones principalmente lineales y altamente significativas.
+
+El modelo presenta una estructura más sencilla que favorece la interpretabilidad, al tiempo que mantiene una elevada capacidad predictiva, permitiendo explicar de manera eficiente el comportamiento de las calorías quemadas durante la actividad física.
+
+```{r}
+plot(modelo_gam_step_lin, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Despues de reducir el número de variables suavizadas, podemos ver mejor como la relación que hay entre las varibles Age y Weight con Calories_Burned es no lienes. Por interpretabilidad y ya que lo que buscamos es hacer un modelo que nos prediga lo mejor posible, escogemos este modelo, que es más facil de interpretar y no tiende al sobreajuste. Para ello, vamos a ver como se ven los residuos.
+
+```{r}
+plot(modelo_gam_step_lin, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+
+Podemos ver como que los residuos de las variables siguen más o menos la relación no lienal que ya habiamos visto antes. Si que es cierto que se puede apreciar algunos valores atípicos, sobre todo en weight. A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam_step_lin <- AIC(modelo_gam_step_lin)
+print(aic_modelo_gam_step_lin)
+```
+
+Despues de ver el valor AIC que hemos obtenido ante, podemo observar que este valor ha reucido un poco, dandonos a entender que no suavizar ciertas variables no hace un modelo que es más explicable y que además el modelo tiene un mejor ajuste. Por lo que despues de seleccionar el modelo, vamos a ver lso residuos del modelo.
+
+```{r}
+par(mfrow = c(2, 2))
+gam.check(modelo_gam_step_lin)
+```
+
+Viendo el QQ-Plot, podemos ver que los residuos siguen razonablemente bien la línea de referencia, indicando que la normalidad de los residuos es aceptable, aunque hay pequeñas desviaciones en las colas que podrían sugerir leves outliers o ligera no normalidad.
+
+En el segundo gráfico, de la comparación entre residuos y predicciones lineales, podemo ver que el patrón en forma de U en los residuos indica problemas de no linealidad: el modelo no captura completamente la relación entre la variable predictora y la respuesta. Hay evidencia de que el modelo actual no es suficientemente flexible.
+
+Al analizar los histogramas con los residuos, esto nos muestra residuos aproximadamente simétricos y centrados en cero, lo que refuerza que los residuos tienen una distribución cercana a la normal, con ligeras imperfecciones que no son preocupantes en exceso.
+
+Por último, tenemos las respuestas segun los valores ajustado, en el cual aunque existe una relación creciente entre la respuesta y los valores ajustados, se observa una ligera curvatura en los extremos, indicando que el modelo subestima o sobreestima para valores altos, lo que también sugiere falta de captura de no linealidad.
+
+A parte, tenemos que el modelo ha convergido correctamente y de forma estable, con un gradiente cercano a cero y un Hessiano positivo definido, lo que confirma que se alcanzó un óptimo. El rango del modelo es completo, indicando ausencia de problemas de colinealidad. Además, el chequeo de la dimensión base muestra que no hay indicios de que el número de bases (k) sea insuficiente, ya que los índices k-index están cerca de 1 y los valores p son altos. En conjunto, estos resultados indican que el modelo está bien ajustado y no requiere modificaciones en su configuración actual.
+
+A continación vamos intentar encontrar un grado se suavizado mejor para tener un mejor contros con el sobreajuste. Para ello, vamos a ajustar dos modelos, el primero va a ser con el método REML y el segundo con el método GCV.Cp. Como el modelo hecho por el método REML ya está creado de antes, lo vamos a volver a ver.
+
+```{r}
+summary(modelo_gam_step_lin)
+```
+
+```{r}
+modelo_gam_step_cv <- gam(Calories_Burned ~ s(Age) + Gender + s(Weight) + Height + Avg_BPM + Resting_BPM + Session_Duration + BMI, data = train, method = "GCV.Cp")
+summary(modelo_gam_step_cv)
+```
+ 
+Comparando ambos modelos podemos ver lo siguiente: por un lado, los valores del intercepto y de los coeficientes asociados a Gender, Avg_BPM, Resting_BPM, Session_Duration, BMI y Height son muy similares en ambos casos. Además, todas estas variables son estadísticamente significativas, ya que presentan p-valores extremadamente bajos, lo que indica que tienen un impacto importante sobre las calorías quemadas. El hecho de que estos efectos sean lineales en ambos modelos y tan similares en magnitud y significación sugiere que su relación con la variable respuesta es estable y bien capturada sin necesidad de suavizarlas.
+
+En cuanto a los efectos suavizados, en ambos modelos las variables Age y Weight han sido modeladas de forma no lineal mediante funciones suavizadas (s(Age) y s(Weight)). Para Age, el grado de complejidad (expresado mediante el valor de edf) es muy parecido en ambos modelos: 8.477 con el método REML y 8.720 con GCV, lo que indica que la relación no lineal entre la edad y las calorías quemadas es consistente y similar en ambos casos. Sin embargo, en el caso de Weight, el valor de edf es notablemente mayor en el modelo GCV (8.016 frente a 4.952 en REML), lo que sugiere que el segundo modelo ha permitido una mayor flexibilidad para capturar la relación entre el peso y las calorías quemadas.
+
+Además, el valor de R-squared ajustado y la desviación explicada son prácticamente idénticos en ambos modelos (98.5%-98.6%), lo cual indica que el ajuste global es excelente en ambos casos. Sin embargo, el modelo ajustado mediante GCV presenta una escala estimada ligeramente más baja (1050.6 frente a 1061.4) y un valor de GCV aceptable, lo que refuerza que ha conseguido un mejor equilibrio entre ajuste y complejidad sin signos evidentes de sobreajuste.
+
+Dado que el objetivo de este trabajo es predecir las calorías quemadas, el modelo ajustado mediante GCV sería el más adecuado para este propósito, ya que consigue una mejor captura de las relaciones no lineales, especialmente en el caso del peso, y ofrece un ajuste global ligeramente superior.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelo_gam_step_lin, main = "Ajuste GAM con REML con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_step_cv, main = "Ajuste GAM con GCV.Cp con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_step_lin, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con REML")
+plot(modelo_gam_step_cv, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con GCV.Cp")
+```
+
+A partir del análisis comparativo de los modelos ajustados mediante REML y GCV, se observa que ambos capturan de manera adecuada las relaciones no lineales entre las variables Age y Weight con las calorías quemadas. En ambos casos, la variable Age muestra una relación estable hasta aproximadamente los 40 años, a partir de los cuales se detecta una disminución importante en las calorías quemadas, patrón que es consistente entre ambos métodos. La variable Weight, por su parte, presenta una tendencia negativa en su efecto, siendo más marcada y flexible en el ajuste mediante GCV.
+
+Los modelos ajustados con GCV muestran una mayor flexibilidad en el suavizado (valores de edf más elevados), permitiendo capturar detalles adicionales en la relación entre las variables predictoras y la respuesta. Esta flexibilidad adicional es especialmente notable en el caso de Weight, donde el modelo GCV detecta variaciones locales que el modelo REML suaviza más agresivamente.
+
+No obstante, ambos métodos proporcionan un ajuste de alta calidad, con residuos bien distribuidos y sin patrones de heterocedasticidad evidentes. La elección entre ambos métodos depende del objetivo final: si se prioriza un modelo más preciso y detallado sobre los datos observados, el ajuste mediante GCV es más recomendable; si se busca un modelo más sencillo, estable y potencialmente más robusto ante datos nuevos, el ajuste mediante REML sería la opción más adecuada.
+
+En conclusión, dado que el objetivo principal es modelar de la forma más precisa posible las calorías quemadas en función de las variables consideradas, el modelo ajustado mediante GCV se considera el más adecuado para este caso.
+
+## Modelo por Elastic Net.
+
+```{r}
+# Preparamos los datos para hacer el modelo
+X1 <- model.matrix(Calories_Burned ~ . - Calories_Burned_Binary, data = train)[, -1]
+y <- train$Calories_Burned
+
+# Ajustamos el modelo de Elatic Net
+# Ponemos un valor de alpha de 0.5 para que haya un uquilibrio entre Lasso y Ridge.
+modelo_elastic_net <- cv.glmnet(X1, y, alpha = 0.5)
+
+# Buscamos el lambda óptimo.
+lambda_opt <- modelo_elastic_net$lambda.min
+
+# Buscamos los coeficientes y los imprimimos.
+coeficientes <- coef(modelo_elastic_net, s = lambda_opt)
+print(coeficientes)
+```
+
+Las variables seleccionadas son: Age, Gender, Height, Avg_BPM, Resting_BPM, Sessio_Duration, Workout_Type, Fat_Percentage, Workout_Frequency y BMI
+
+```{r}
+modelo_gam_EN <- gam(Calories_Burned ~ s(Age) + Gender + s(Height) + s(Avg_BPM) + s(Resting_BPM) + s(Session_Duration) + Workout_Type + s(Fat_Percentage) + (Workout_Frequency) + s(BMI), data = train, method = "REML")
+summary(modelo_gam_EN)
+```
+
+Este modelo busca predecir las calorías quemadas (Calories_Burned) integrando tanto efectos paramétricos como suavizados, alcanzando un excelente ajuste (R² ajustado = 0.987, 98.7% de desviación explicada). La variable Gender muestra nuevamente un efecto positivo y altamente significativo, confirmando que los hombres tienden a quemar más calorías que las mujeres, manteniendo constantes las demás variables.
+
+Respecto a los efectos suavizados, s(Age) presenta una relación claramente no lineal con Calories_Burned, mientras que s(Session_Duration) y s(Avg_BPM) también son altamente significativos, aunque con menor complejidad. s(Fat_Percentage) revela una influencia no lineal moderada en la respuesta, lo que sugiere que el porcentaje de grasa corporal impacta de forma más compleja en las calorías quemadas.
+
+Por otro lado, variables como Workout_Type y Workout_Frequency no resultan significativas en este modelo, indicando que, tras ajustar por las demás variables, su efecto sobre las calorías quemadas es poco relevante. Además, ni s(Height) ni s(BMI) muestran un efecto significativo en esta configuración.
+
+En conjunto, este modelo logra un equilibrio entre precisión predictiva y flexibilidad, capturando importantes patrones no lineales sin introducir sobreajuste innecesario, y destaca especialmente la relevancia de características fisiológicas individuales sobre las calorías quemadas.
+
+```{r}
+plot(modelo_gam_EN, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Con estos gráficos, podemos resaltar más lo que hemos dicho anteriormente con las variable, tenemos que las variable Avg_BPM y Sessión_Duration, se aproximan a una relación lineal, mientras que Age, presenta distintas curvas en su representación. Ahora, vamos a personalizar el gráfico para mejorar la representación.
+
+
+```{r}
+plot(modelo_gam_EN, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+Podemos ver como que los residuos de las variables siguen más o menos la relación no lienal que ya habiamos visto antes. A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam_EN <- AIC(modelo_gam_EN)
+print(aic_modelo_gam_EN)
+```
+
+Este valor así no nos dice nada, solo nos lo va a decir una vez que comparemos el modelo con otros para ver cual nos predice mejor y poder valorar el que mejor nos selecciones. Ahora, vamos a ver los residuos de nuestro modelo. Por otro lado, como hemos visto antes, las variables de Avg_BPM y Session_Duration, tienen un valor edf muy cercano a 1, por lo que como se pueden considerar lineales, vamos a hacer otro modelo con esos valores sin suavizar para mejorar la interpretabilidad del modelo.
+
+```{r}
+modelo_gam_EN_lin <- gam(Calories_Burned ~ s(Age) + Gender + (Height) + (Avg_BPM) + (Resting_BPM) + s(Session_Duration) + Workout_Type + s(Fat_Percentage) + (Workout_Frequency) + (BMI), data = train, method = "REML")
+summary(modelo_gam_EN_lin)
+```
+
+Este modelo predice las calorías quemadas (Calories_Burned) mediante una combinación de efectos paramétricos y suavizados, logrando un excelente desempeño (R² ajustado = 0.987, explicando el 98.7% de la variabilidad). La variable Gender muestra un efecto positivo fuerte y significativo: los hombres queman más calorías que las mujeres, manteniendo constantes las demás variables.
+
+Entre los efectos paramétricos, Avg_BPM y Resting_BPM resultan significativos, reforzando el rol clave de la frecuencia cardíaca en el gasto energético. Sin embargo, otras variables como Height, Workout_Type, Workout_Frequency y BMI no presentan un impacto significativo, sugiriendo que su influencia es limitada una vez controladas las principales características fisiológicas y de esfuerzo.
+
+Respecto a los efectos suavizados, s(Age), s(Session_Duration) y s(Fat_Percentage) son altamente significativos. Esto indica relaciones no lineales importantes: la edad, la duración de la sesión y el porcentaje de grasa corporal afectan de manera compleja las calorías quemadas.
+
+Comparando con el modelo anterior, vemos varias cosas, la primera de todoas es que el R-sq (adj) y la Deviance explained no ha cambiado, por lo que si consideramos linealidad entre esas variables no pasa nada. Por otro lado, el valor de -REML, a aumentado un poco, pasando de tener un valor de 3376.4 a 3378, esta diferencia no es muy grande indicando que ambos modelos son bastante válidos estadísticamente. Por lo que de los dos, vamos a seleccionar este, por su simplicidad y explicabilidad. Ahora vamos a ver como se ve gráficamente.
+
+```{r}
+plot(modelo_gam_EN_lin, main = "Ajuste GAM con Splines Cúbicos", shade = TRUE)
+```
+
+Despues de suavizar solo las variables que tienen un valor por encima de 1 en edf, tenemos esto. Aqui, podemo ver que, como en los otros dos modelo GAM, la variable age, está presente, sin embargo hay algo que nos ha llamado la atención bastante y es que la variable Session_Duration tiene un edf de 6, y al ver su representación podemos ver ligeras curvas, lo que nos puede dar a entender que es una variable que ha sido sobreajustada. Y por último, tenemos la variable Fat_Percentafe en la que tambien se pueden ver ligeras curvas. A continuación vamos a analizar sus residuos para obtener más información.
+
+```{r}
+plot(modelo_gam_EN_lin, residuals = TRUE,  pch = 19, col = "black", seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado de x sobre y")
+```
+
+Podemos ver como que los residuos de las variables siguen más o menos la relación no lienal que ya habiamos visto antes. Si que es cierto que se puede apreciar algunos valores atípicos, sobre todo en weight. A continuación vamos a analizar varias métricas como el AIC y los residuos de nuestro modelo. Primero de todo vamso a ver el valor de AIC.
+
+```{r}
+aic_modelo_gam_EN_lin <- AIC(modelo_gam_EN_lin)
+print(aic_modelo_gam_EN_lin)
+```
+Vemos que al calcular el AIC del modelo sin tantas variables suavizadas, vemos que ha disminuido muy poco, solamente 0.2. Lo que nos da a entender que no hay mucha diferencia entre los dos modelos. Despues de haber visto gráficamente la variable Age suavizada, vamos a ver los residuos del modelo seleccionado.
+
+```{r}
+par(mfrow = c(2, 2))
+gam.check(modelo_gam_EN_lin)
+```
+
+En el QQ-Plot, podemo observar que los residuos no son perfectamente normales. Aunque cerca del centro los residuos se alinean bien, en los extremos (colas) se desvían de la línea ideal. Esto sugiere presencia de valores atípicos o colas pesadas.
+
+Por otro lado, vemos que en la gráfica de los residuos y las predicciones, se observa un patrón en forma de curva en la dispersión de los residuos, lo cual indica que el modelo no capta adecuadamente la relación entre las variables. Hay evidencia de no linealidad que el modelo no está modelando.
+
+Al ver los residuos en el histograma se muestra que los residuos están aproximadamente centrados en cero y son algo simétricos, pero no siguen una campana normal perfecta. Hay más concentración cerca de cero y colas más pesadas, apoyando la conclusión del QQ-Plot.
+
+Por último, tenemos el gráfico de respuesto y valores ajustados en la que existe una buena relación lineal general entre los valores predichos y los valores reales, pero se observa mayor dispersión a valores altos, lo que sugiere que el modelo puede perder precisión conforme crecen los valores predichos.
+
+El modelo fue ajustado utilizando el método REML con el optimizador Outer Newton, logrando una convergencia completa en solo 7 iteraciones, lo cual indica un proceso de ajuste eficiente y estable. Los gradientes finales son extremadamente pequeños y la escala estimada de los residuos es razonable, sugiriendo un ajuste sólido. El hecho de que el Hessiano sea positivo definido y que el rango de los valores propios sea adecuado confirma que el mínimo encontrado es válido y que no existen problemas de inestabilidad numérica ni colinealidad severa. Además, el modelo tiene rango completo (37/37), indicando que no hay parámetros redundantes ni mal definidos.
+
+En cuanto a la revisión de la dimensión base (k-check), las funciones suavizadas para "Age", "Session_Duration" y "Fat_Percentage" no presentan señales de falta de flexibilidad: los valores de k-index están cerca de 1 y los p-valores son suficientemente altos, lo que significa que no es necesario aumentar el número de bases para capturar adecuadamente la forma de las relaciones no lineales.
+
+Con esto podemos ver que el modelo converge de forma correcta, es tstable, bien identificada y la elección de la complejidad de los suavizadores es apropiada. A continación vamos intentar encontrar un grado se suavizado mejor para tener un mejor contros con el sobreajuste. Para ello, vamos a ajustar dos modelos, el primero va a ser con el método REML y el segundo con el método GCV.Cp. Como el modelo hecho por el método REML ya está creado de antes, lo vamos a volver a ver.
+
+```{r}
+summary(modelo_gam_EN_lin)
+```
+
+```{r}
+modelo_gam_cv_EN_lin <- gam(Calories_Burned ~ s(Age) + Gender + (Height) + (Avg_BPM) + (Resting_BPM) + s(Session_Duration) + Workout_Type + s(Fat_Percentage) + (Workout_Frequency) + (BMI), data = train, method = "GCV.Cp")
+summary(modelo_gam_cv_EN_lin)
+```
+ 
+Tras comparar ambos modelos, el ajustado mediante REML y el ajustado mediante GCV.Cp, observamos que presentan prácticamente el mismo rendimiento en términos de R² ajustado (0.987) y porcentaje de desviación explicada (98.7%). Sin embargo, el modelo ajustado con GCV.Cp muestra una ligera mayor flexibilidad en los efectos suavizados, lo que podría conllevar un mayor riesgo de sobreajuste.
+
+Dado que el objetivo es predecir de manera precisa y generalizable las calorías quemadas a partir de las variables disponibles, consideramos que el modelo ajustado con REML es el más adecuado. Este proporciona un equilibrio más robusto entre ajuste y capacidad de generalización, siendo menos propenso a sobreajustar los datos. Por tanto, seleccionamos el modelo basado en REML como la mejor opción para la predicción exacta de las calorías quemadas.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelo_gam_EN_lin, main = "Ajuste GAM con REML con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_cv_EN_lin, main = "Ajuste GAM con GCV.Cp con Splines Cúbicos", shade = TRUE)
+plot(modelo_gam_EN_lin, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con REML")
+plot(modelo_gam_cv_EN_lin, residuals = TRUE,  pch = 19, seWithMean = TRUE, rug = TRUE, main = "Efecto Suavizado con GCV.Cp")
+```
+
+## Elección del modelo
+
+Como hemos observado, hemos hecho tres modelos GAMs distintos para predecir el mismo objetivo, ya que lo que buscamos es el mejor modelo. Despues de analizar detalladamente cada gráfico y de ver los residuos tanto de las variables suavizada, vamos a seleccionar uno.
+
+El primer modelo, es un modelo que hemos hecho según las relaciones entre las variables, en este modelo se puede ver que el modelo tiene una alta explicabilidad de la deviance del 98.5%, además de que tiene un R-sq ajustado bastante alto, muy cercano a 1. Tenemos un valor -REML  de 3378 y un valor AIC de  6753.735.
+
+El segundo modelo lo hemos hecho median la selección de variables de Stepwise, en este modelo hemos observado que el valor de nuestro AIC a disminuido un poco haciendo el mejor modelo de todos. Además de esto, tenemo que el modelo tiene una explicabilidad de la deviance del 98.6% y el R-sq ajustado es de 0.985, igual que el primer modelo, al igual que tenemos un valor de -REML de 3359.8 siendo el más bajo hasta el momento.
+
+Por último tenemos el modelo que se ha creado mediante la selección de variables con Elastic Net, en este modelo se ha observado que el AIC a aumentado mucho, incluso más que el primer modelo, al igual que hemos podido observar como hay variables, como Session_Duration, que presentan un poco se sobreajuste. Por esto y porque escoge casi todas las variables del dataset, creeemos que es el peor modelo de todos, cierto es que tiene una devianza explicada del 98.7% y un R-sq ajustado de 0.987 lo que nos dice que el modelo es muy preciso, además de esto tiene in valor -rm de 3329.8, pero hemos decidido dar prioridad a evitar sobredispersión con bastante explicabilidad a un modelo que sea super explicable pero que esté sobreajustado.
+
+Por lo que una vez vistos los modelos, hemos optado por seleccionar el segundo modelo, ya que es bastante explicable y sencillo, además de su precisión para el análisis
+
+## Conclusión General
+
+En este trabajo exploramos distintas técnicas de regresión para entender y predecir cuántas calorías se queman durante una sesión de ejercicio. Comenzamos con modelos básicos como la regresión lineal y logística, y luego avanzamos hacia modelos más flexibles y complejos como los modelos lineales generalizados (GLM) y los modelos aditivos generalizados (GAM).
+
+Cada modelo nos aportó diferentes perspectivas: algunos nos permitieron interpretar fácilmente el efecto de cada variable, mientras que otros fueron más efectivos para captar relaciones no lineales o complejas entre los datos. Evaluamos los modelos usando métricas como el AIC, la proporción de variabilidad explicada (devianza), y el ajuste general (R² ajustado), además de analizar los residuos para verificar si el modelo era adecuado.
+
+Después de comparar los resultados, decidimos que el mejor modelo es un **GAM ajustado mediante selección Stepwise**, que solo suaviza las variables que realmente lo necesitan (Age y Weight). Este modelo logró un equilibrio ideal entre precisión, facilidad para interpretar los resultados y estabilidad frente al sobreajuste.
+
+En resumen, aprendimos que no siempre el modelo más complejo es el mejor: a veces, un modelo bien ajustado y sencillo puede ofrecer mejores resultados si se adapta bien a los datos y se interpreta fácilmente.
+
+```{r}
+# Crear data frame con información de modelos
+tabla_modelos <- data.frame(
+  mode1 = c("Regresión Lineal", 
+             "Regresión Logística", 
+             "Poisson", 
+             "Binomial Negativa", 
+             "Gamma", 
+             "GAM (Relación, REML)", 
+             "GAM (Stepwise, REML)", 
+             "GAM (Elastic Net)", 
+             "GAM (Stepwise, GCV)", 
+             "GAM (EN simplificado, REML)"),
+  Tipo = c("Lineal", "GLM (binomial)", "GLM (Poisson)", "GLM (NegBin)", "GLM (Gamma)",
+           "GAM", "GAM", "GAM", "GAM", "GAM"),
+  R2_Ajustado = c("Bajo", "-", "-", "-", "-", 
+                  "0.985", "0.985", "0.987", "0.985", "0.987"),
+  Devianza = c("Baja", "-", "-", "-", "-", 
+               "98.5%", "98.6%", "98.7%", "98.6%", "98.7%"),
+  AIC = c("Alto", "~211", "Alto", "↓ AIC", "Moderado", 
+          "6753.7", "**Menor**", "↑ AIC", "≈", "≈"),
+  REML = c("-", "-", "-", "-", "-", 
+           "3378", "**3359.8**", "3329.8", "3360.5", "3376.4"),
+  Observaciones = c(
+    "No capta no linealidad",
+    "Buena precisión, AUC = 0.98",
+    "Sobredispersión presente",
+    "Mejora respecto a Poisson",
+    "Ajuste razonable para variables continuas",
+    "Muy preciso pero más complejo",
+    "Modelo ELEGIDO: equilibrio entre precisión y simplicidad",
+    "Riesgo de sobreajuste por alta flexibilidad",
+    "Similar a REML pero más flexible",
+    "Buen rendimiento, estructura más compleja"
+  )
+)
+
+# Mostrar tabla con formato bonito
+kable(tabla_modelos, caption = "Comparativa de Modelos Ajustados")
+
+```
+
+
